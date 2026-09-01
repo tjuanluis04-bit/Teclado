@@ -34,7 +34,7 @@ object KeyDefs {
     fun lettersRow2() = row2.map { Key(it.code, it.toString(), it.uppercaseChar().toString()) }
     fun lettersRow3() = row3.map { Key(it.code, it.toString(), it.uppercaseChar().toString()) }
 
-    val symbolsRow1 = "@#$_&-+()".map { Key(it.code, it.toString()) }
+    val symbolsRow1 = "@#\$_&-+()".map { Key(it.code, it.toString()) }
     val symbolsRow2 = "*\"':;!?".map { Key(it.code, it.toString()) }
     val symbolsRow3 = "/,.".map { Key(it.code, it.toString()) }
 }
