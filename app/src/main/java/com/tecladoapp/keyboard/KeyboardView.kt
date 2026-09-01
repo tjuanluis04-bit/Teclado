@@ -98,9 +98,9 @@ class KeyboardView(context: Context) : View(context) {
             rows.add(layoutRow(r2, leftPad = width * 0.05f, rightPad = width * 0.05f))
             y += rowH
             val row3keys = mutableListOf<Key>()
-            row3keys.add(Key(CODE_SHIFT, "⇧", weight = 1.5f, isFunctionKey = true))
+            row3keys.add(Key(CODE_SHIFT, "", weight = 1.5f, isFunctionKey = true, icon = if (shiftOn) KeyIcons.Icon.SHIFT_ACTIVE else KeyIcons.Icon.SHIFT))
             row3keys.addAll(r3)
-            row3keys.add(Key(CODE_BACKSPACE, "⌫", weight = 1.5f, isFunctionKey = true))
+            row3keys.add(Key(CODE_BACKSPACE, "", weight = 1.5f, isFunctionKey = true, icon = KeyIcons.Icon.BACKSPACE))
             rows.add(layoutRow(row3keys))
             y += rowH
         } else {
@@ -109,20 +109,20 @@ class KeyboardView(context: Context) : View(context) {
             rows.add(layoutRow(KeyDefs.symbolsRow2))
             y += rowH
             val row3keys = mutableListOf<Key>()
-            row3keys.add(Key(CODE_SHIFT, "⇧", weight = 1.5f, isFunctionKey = true))
+            row3keys.add(Key(CODE_SHIFT, "", weight = 1.5f, isFunctionKey = true, icon = if (shiftOn) KeyIcons.Icon.SHIFT_ACTIVE else KeyIcons.Icon.SHIFT))
             row3keys.addAll(KeyDefs.symbolsRow3)
-            row3keys.add(Key(CODE_BACKSPACE, "⌫", weight = 1.5f, isFunctionKey = true))
+            row3keys.add(Key(CODE_BACKSPACE, "", weight = 1.5f, isFunctionKey = true, icon = KeyIcons.Icon.BACKSPACE))
             rows.add(layoutRow(row3keys))
             y += rowH
         }
 
         val bottomRow = listOf(
             Key(CODE_SYMBOLS, if (showSymbols) "ABC" else "?123", weight = 1.4f, isFunctionKey = true),
-            Key(CODE_EMOJI, "🙂", weight = 1f, isFunctionKey = true),
-            Key(CODE_CLIPBOARD, "📋", weight = 1f, isFunctionKey = true),
+            Key(CODE_EMOJI, "", weight = 1f, isFunctionKey = true, icon = KeyIcons.Icon.EMOJI),
+            Key(CODE_CLIPBOARD, "", weight = 1f, isFunctionKey = true, icon = KeyIcons.Icon.CLIPBOARD),
             Key(CODE_SPACE, "espacio", weight = 3.2f, isFunctionKey = true),
             Key(CODE_PERIOD, ".", weight = 0.8f),
-            Key(CODE_ENTER, "⏎", weight = 1.6f, isFunctionKey = true)
+            Key(CODE_ENTER, "", weight = 1.6f, isFunctionKey = true, icon = KeyIcons.Icon.ENTER)
         )
         rows.add(layoutRow(bottomRow))
     }
@@ -144,8 +144,13 @@ class KeyboardView(context: Context) : View(context) {
 
                 textPaint.color = if (laid.key.isFunctionKey) theme.backgroundColor else theme.keyTextColor
                 textPaint.textSize = 16f * density
-                val label = displayLabel(laid.key)
-                canvas.drawText(label, r.centerX(), r.centerY() - (textPaint.descent() + textPaint.ascent()) / 2, textPaint)
+                if (laid.key.icon != null) {
+                    keyPaint.color = textPaint.color
+                    KeyIcons.draw(canvas, laid.key.icon, r, keyPaint)
+                } else {
+                    val label = displayLabel(laid.key)
+                    canvas.drawText(label, r.centerX(), r.centerY() - (textPaint.descent() + textPaint.ascent()) / 2, textPaint)
+                }
             }
         }
     }
@@ -225,7 +230,7 @@ class KeyboardView(context: Context) : View(context) {
 
     private fun handleTap(key: Key) {
         when (key.code) {
-            CODE_SHIFT -> { shiftOn = !shiftOn; listener?.onShiftToggled(shiftOn) }
+            CODE_SHIFT -> { shiftOn = !shiftOn; requestLayout(); listener?.onShiftToggled(shiftOn) }
             CODE_BACKSPACE -> listener?.onBackspace()
             CODE_SPACE -> listener?.onSpace()
             CODE_SYMBOLS -> { showSymbols = !showSymbols; requestLayout(); listener?.onSwitchToSymbols(showSymbols) }
@@ -236,7 +241,7 @@ class KeyboardView(context: Context) : View(context) {
                 var c = key.code.toChar()
                 if (shiftOn && key.altLabel != null) c = key.altLabel.first()
                 listener?.onKeyChar(c)
-                if (shiftOn) { shiftOn = false; listener?.onShiftToggled(false) }
+                if (shiftOn) { shiftOn = false; requestLayout(); listener?.onShiftToggled(false) }
             }
         }
     }

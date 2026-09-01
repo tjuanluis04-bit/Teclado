@@ -79,30 +79,23 @@ class KeyboardService : InputMethodService(), KeyboardListener {
         val bar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(16, 8, 16, 8)
+            setPadding(16, 10, 16, 10)
             setBackgroundColor(darken(theme.backgroundColor))
         }
-        val title = TextView(this).apply {
-            text = "⌨️"
-            textSize = 16f
+        val spacer = android.view.View(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
-        val clipBtn = TextView(this).apply {
-            text = "📋"; textSize = 18f; setPadding(16, 0, 16, 0)
-            setOnClickListener { showClipboardPanel() }
+        fun iconButton(resId: Int, onClick: () -> Unit) = android.widget.ImageView(this).apply {
+            setImageResource(resId)
+            setColorFilter(theme.accentColor)
+            layoutParams = LinearLayout.LayoutParams(72, 72).apply { marginStart = 16 }
+            setPadding(12, 12, 12, 12)
+            setOnClickListener { onClick() }
         }
-        val emojiBtn = TextView(this).apply {
-            text = "🙂"; textSize = 18f; setPadding(16, 0, 16, 0)
-            setOnClickListener { showEmojiPanel() }
-        }
-        val settingsBtn = TextView(this).apply {
-            text = "⚙️"; textSize = 18f
-            setOnClickListener { openSettings() }
-        }
-        bar.addView(title)
-        bar.addView(clipBtn)
-        bar.addView(emojiBtn)
-        bar.addView(settingsBtn)
+        bar.addView(spacer)
+        bar.addView(iconButton(R.drawable.ic_clipboard) { showClipboardPanel() })
+        bar.addView(iconButton(R.drawable.ic_emoji) { showEmojiPanel() })
+        bar.addView(iconButton(R.drawable.ic_settings) { openSettings() })
         return bar
     }
 

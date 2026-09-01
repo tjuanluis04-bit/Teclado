@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.recyclerview.widget.GridLayoutManager
@@ -38,7 +39,11 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
             gravity = Gravity.CENTER_VERTICAL
             setPadding(16, 12, 16, 8)
         }
-        val lupa = TextView(context).apply { text = "🔍"; textSize = 16f; setPadding(0, 0, 12, 0) }
+        val lupa = android.widget.ImageView(context).apply {
+            setImageResource(R.drawable.ic_search)
+            setColorFilter(Color.parseColor("#888888"))
+            layoutParams = LinearLayout.LayoutParams(48, 48).apply { marginEnd = 12 }
+        }
         searchInput.apply {
             hint = "Buscar emoji…"
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
@@ -56,8 +61,10 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
                 override fun afterTextChanged(s: Editable?) {}
             })
         }
-        val closeBtn = TextView(context).apply {
-            text = "✕"; textSize = 16f; setPadding(16, 0, 0, 0)
+        val closeBtn = android.widget.ImageView(context).apply {
+            setImageResource(R.drawable.ic_close)
+            setColorFilter(Color.parseColor("#555555"))
+            layoutParams = LinearLayout.LayoutParams(48, 48).apply { marginStart = 16 }
             setOnClickListener { listener?.onClose() }
         }
         searchBar.addView(lupa)
@@ -73,7 +80,8 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
             setOnClickListener { currentTab = Tab.RECIENTES; refreshContent() }
         }
         tabFavoritos.apply {
-            text = "Favoritos ⭐"; gravity = Gravity.CENTER; setPadding(0, 16, 0, 16)
+            text = "  Favoritos"; gravity = Gravity.CENTER; setPadding(0, 16, 0, 16)
+            setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_star, 0, 0, 0)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setOnClickListener { currentTab = Tab.FAVORITOS; refreshContent() }
         }
@@ -122,21 +130,32 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         private var items: List<String> = emptyList()
         fun submit(list: List<String>) { items = list; notifyDataSetChanged() }
 
-        class VH(val tv: TextView) : RecyclerView.ViewHolder(tv)
+        class VH(val frame: FrameLayout, val tv: TextView, val star: android.widget.ImageView) : RecyclerView.ViewHolder(frame)
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+            val frame = FrameLayout(parent.context)
             val tv = TextView(parent.context).apply {
                 textSize = 24f
                 gravity = Gravity.CENTER
                 setPadding(8, 16, 8, 16)
-                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             }
-            return VH(tv)
+            val star = android.widget.ImageView(parent.context).apply {
+                setImageResource(R.drawable.ic_star)
+                setColorFilter(Color.parseColor("#FFC107"))
+                layoutParams = FrameLayout.LayoutParams(20, 20, Gravity.TOP or Gravity.END)
+                visibility = View.GONE
+            }
+            frame.addView(tv)
+            frame.addView(star)
+            frame.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            return VH(frame, tv, star)
         }
 
         override fun onBindViewHolder(holder: VH, position: Int) {
             val emoji = items[position]
             holder.tv.text = emoji
+            holder.star.visibility = if (isFavorite(emoji)) View.VISIBLE else View.GONE
             holder.tv.setOnClickListener { onTap(emoji) }
             holder.tv.setOnLongClickListener { onLongPress(emoji); true }
         }
