@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Teclado App"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvEnableStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="El teclado no está activado"
+            android:textSize="14sp"
+            android:layout_marginBottom="12dp"/>
+
+        <Button
+            android:id="@+id/btnEnableKeyboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Activar teclado en Ajustes del sistema"/>
+
+        <Button
+            android:id="@+id/btnSwitchKeyboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Elegir este teclado"/>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#DDDDDD" android:layout_marginVertical="20dp"/>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tema" android:textSize="16sp" android:textStyle="bold"/>
+        <Spinner android:id="@+id/spinnerTheme" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp"/>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tipografía" android:textSize="16sp" android:textStyle="bold"/>
+        <Spinner android:id="@+id/spinnerFont" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp"/>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tamaño del teclado" android:textSize="16sp" android:textStyle="bold"/>
+        <SeekBar android:id="@+id/seekHeight" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="60" android:layout_marginBottom="16dp"/>
+
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp">
+            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Corrección ortográfica" android:textSize="15sp"/>
+            <Switch android:id="@+id/switchSpellCheck" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp">
+            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Sugerencia de palabras" android:textSize="15sp"/>
+            <Switch android:id="@+id/switchSuggestions" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.TecladoApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#4C6FFF</item>
+        <item name="colorPrimaryDark">#3452D9</item>
+        <item name="colorAccent">#FF6F91</item>
+    </style>
+</resources>

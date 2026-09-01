@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Canvas 108x108. Zona de contenido: 60% central = 64.8dp, de 21.6 a 86.4 en ambos ejes,
+     dejando 20% (21.6dp) de margen arriba, abajo, izquierda y derecha. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Cuerpo del teclado: bloque redondeado grande y audaz dentro de la zona segura -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M21.6,34.6
+            a8,8 0,0 1,8 -8
+            h60.8
+            a8,8 0,0 1,8 8
+            v37.6
+            a8,8 0,0 1,-8 8
+            h-60.8
+            a8,8 0,0 1,-8 -8
+            z" />
+
+    <!-- Filas de teclas, en color de acento, ocupando gran parte del bloque (maximalista) -->
+    <path android:fillColor="#4C6FFF" android:pathData="M27,32 h11 v9 h-11 z" />
+    <path android:fillColor="#FF6F91" android:pathData="M40,32 h11 v9 h-11 z" />
+    <path android:fillColor="#4C6FFF" android:pathData="M53,32 h11 v9 h-11 z" />
+    <path android:fillColor="#FF6F91" android:pathData="M66,32 h11 v9 h-11 z" />
+    <path android:fillColor="#4C6FFF" android:pathData="M79,32 h9 v9 h-9 z" />
+
+    <path android:fillColor="#FF6F91" android:pathData="M27,45 h11 v9 h-11 z" />
+    <path android:fillColor="#4C6FFF" android:pathData="M40,45 h11 v9 h-11 z" />
+    <path android:fillColor="#FF6F91" android:pathData="M53,45 h11 v9 h-11 z" />
+    <path android:fillColor="#4C6FFF" android:pathData="M66,45 h11 v9 h-11 z" />
+    <path android:fillColor="#FF6F91" android:pathData="M79,45 h9 v9 h-9 z" />
+
+    <!-- Barra espaciadora ancha -->
+    <path android:fillColor="#2FE0C5" android:pathData="M27,58 h61 v9 h-61 z" />
+</vector>
