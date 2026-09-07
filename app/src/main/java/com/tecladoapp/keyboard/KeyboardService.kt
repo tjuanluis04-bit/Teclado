@@ -43,6 +43,12 @@ class KeyboardService : InputMethodService(), KeyboardListener {
         super.onDestroy()
     }
 
+    override fun onEvaluateFullscreenMode(): Boolean {
+        // Un teclado personalizado nunca debe usar el modo de pantalla completa
+        // de Android (el editor gigante que aplasta el teclado real).
+        return false
+    }
+
     override fun onCreateInputView(): View {
         val theme = ThemeCatalog.theme(prefs.themeId)
         val font = ThemeCatalog.font(prefs.fontId)
@@ -50,6 +56,7 @@ class KeyboardService : InputMethodService(), KeyboardListener {
         rootLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(theme.backgroundColor)
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
 
         toolbar = buildToolbar(theme)

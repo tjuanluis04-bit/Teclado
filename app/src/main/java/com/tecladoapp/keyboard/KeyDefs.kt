@@ -28,7 +28,7 @@ object KeyDefs {
     )
 
     private val row1 = "qwertyuiop"
-    private val row2 = "asdfghjkl"
+    private val row2 = "asdfghjklñ"
     private val row3 = "zxcvbnm"
 
     fun lettersRow1() = row1.map { Key(it.code, it.toString(), it.uppercaseChar().toString()) }
