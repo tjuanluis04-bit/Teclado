@@ -50,6 +50,34 @@ class KeyboardService : InputMethodService(), KeyboardListener {
     }
 
     override fun onCreateInputView(): View {
+        return try {
+            buildInputView()
+        } catch (e: Throwable) {
+            errorView("onCreateInputView", e)
+        }
+    }
+
+    private fun errorView(where: String, e: Throwable): View {
+        return TextView(this).apply {
+            text = "ERROR EN $where\n\n${e.javaClass.simpleName}: ${e.message}\n\n" +
+                e.stackTrace.take(8).joinToString("\n") { "  en $it" }
+            setBackgroundColor(Color.RED)
+            setTextColor(Color.WHITE)
+            textSize = 11f
+            setPadding(24, 24, 24, 24)
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+    }
+
+    private fun debugBanner(): TextView = TextView(this).apply {
+        text = "TECLADO APP — BUILD DE DIAGNÓSTICO v3 — si ves este texto, el código nuevo SÍ está corriendo"
+        setBackgroundColor(Color.MAGENTA)
+        setTextColor(Color.BLACK)
+        textSize = 12f
+        setPadding(16, 16, 16, 16)
+    }
+
+    private fun buildInputView(): View {
         val theme = ThemeCatalog.theme(prefs.themeId)
         val font = ThemeCatalog.font(prefs.fontId)
 
@@ -58,6 +86,8 @@ class KeyboardService : InputMethodService(), KeyboardListener {
             setBackgroundColor(theme.backgroundColor)
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
+
+        rootLayout.addView(debugBanner())
 
         toolbar = buildToolbar(theme)
         rootLayout.addView(toolbar)
@@ -71,13 +101,17 @@ class KeyboardService : InputMethodService(), KeyboardListener {
         contentContainer.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         rootLayout.addView(contentContainer)
 
-        keyboardView = KeyboardView(this).apply {
-            listener = this@KeyboardService
-            this.theme = theme
-            this.fontFamily = font.fontFamily
-            this.heightScale = prefs.keyboardHeightScale
+        try {
+            keyboardView = KeyboardView(this).apply {
+                listener = this@KeyboardService
+                this.theme = theme
+                this.fontFamily = font.fontFamily
+                this.heightScale = prefs.keyboardHeightScale
+            }
+            showKeyboardView()
+        } catch (e: Throwable) {
+            contentContainer.addView(errorView("KeyboardView", e))
         }
-        showKeyboardView()
 
         return rootLayout
     }
@@ -153,13 +187,21 @@ class KeyboardService : InputMethodService(), KeyboardListener {
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        val theme = ThemeCatalog.theme(prefs.themeId)
-        val font = ThemeCatalog.font(prefs.fontId)
-        keyboardView.theme = theme
-        keyboardView.fontFamily = font.fontFamily
-        keyboardView.heightScale = prefs.keyboardHeightScale
-        showKeyboardView()
-        updateSuggestions()
+        try {
+            if (!::keyboardView.isInitialized) return
+            val theme = ThemeCatalog.theme(prefs.themeId)
+            val font = ThemeCatalog.font(prefs.fontId)
+            keyboardView.theme = theme
+            keyboardView.fontFamily = font.fontFamily
+            keyboardView.heightScale = prefs.keyboardHeightScale
+            showKeyboardView()
+            updateSuggestions()
+        } catch (e: Throwable) {
+            if (::contentContainer.isInitialized) {
+                contentContainer.removeAllViews()
+                contentContainer.addView(errorView("onStartInputView", e))
+            }
+        }
     }
 
     // ---------- KeyboardListener ----------
