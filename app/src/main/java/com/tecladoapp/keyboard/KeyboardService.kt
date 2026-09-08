@@ -91,20 +91,20 @@ class KeyboardService : InputMethodService(), KeyboardListener {
 
         toolbar = buildToolbar(theme)
         toolbar.setBackgroundColor(Color.CYAN)
-        toolbar.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        toolbar.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 150)
         rootLayout.addView(toolbar)
 
         suggestionBar = SuggestionBarView(this).apply {
             onSuggestionTap = { word -> replaceCurrentWord(word) }
             setBackgroundColor(Color.YELLOW)
         }
-        suggestionBar.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 60)
+        suggestionBar.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 90)
         suggestionBar.visibility = View.VISIBLE
         rootLayout.addView(suggestionBar)
 
         contentContainer = FrameLayout(this)
         contentContainer.setBackgroundColor(Color.rgb(255, 140, 0)) // naranja
-        contentContainer.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        contentContainer.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 900)
         rootLayout.addView(contentContainer)
 
         try {
@@ -114,6 +114,7 @@ class KeyboardService : InputMethodService(), KeyboardListener {
                 this.fontFamily = font.fontFamily
                 this.heightScale = prefs.keyboardHeightScale
                 setBackgroundColor(Color.GREEN)
+                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 900)
             }
             showKeyboardView()
         } catch (e: Throwable) {
