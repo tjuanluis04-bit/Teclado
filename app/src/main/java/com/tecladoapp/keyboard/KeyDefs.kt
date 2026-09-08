@@ -17,7 +17,7 @@ data class Key(
     val altLabel: String? = null, // etiqueta cuando shift está activo
     val weight: Float = 1f,
     val isFunctionKey: Boolean = false,
-    val icon: KeyIcons.Icon? = null
+    val iconRes: Int? = null
 )
 
 object KeyDefs {
