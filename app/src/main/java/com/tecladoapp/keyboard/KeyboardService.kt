@@ -90,14 +90,20 @@ class KeyboardService : InputMethodService(), KeyboardListener {
         rootLayout.addView(debugBanner())
 
         toolbar = buildToolbar(theme)
+        toolbar.setBackgroundColor(Color.CYAN)
+        toolbar.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         rootLayout.addView(toolbar)
 
         suggestionBar = SuggestionBarView(this).apply {
             onSuggestionTap = { word -> replaceCurrentWord(word) }
+            setBackgroundColor(Color.YELLOW)
         }
+        suggestionBar.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 60)
+        suggestionBar.visibility = View.VISIBLE
         rootLayout.addView(suggestionBar)
 
         contentContainer = FrameLayout(this)
+        contentContainer.setBackgroundColor(Color.rgb(255, 140, 0)) // naranja
         contentContainer.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         rootLayout.addView(contentContainer)
 
@@ -107,6 +113,7 @@ class KeyboardService : InputMethodService(), KeyboardListener {
                 this.theme = theme
                 this.fontFamily = font.fontFamily
                 this.heightScale = prefs.keyboardHeightScale
+                setBackgroundColor(Color.GREEN)
             }
             showKeyboardView()
         } catch (e: Throwable) {
