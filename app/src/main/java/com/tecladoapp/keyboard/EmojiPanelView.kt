@@ -20,14 +20,19 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
 
     var listener: Listener? = null
 
-    private enum class Tab { RECIENTES, FAVORITOS, BUSQUEDA }
+    private enum class Tab { RECIENTES, FAVORITOS, BUSQUEDA, CATEGORIA }
     private var currentTab = Tab.RECIENTES
+    private var currentCategoryIndex = 0
+
+    private val density = context.resources.displayMetrics.density
+    private fun px(dp: Float) = (dp * density).toInt()
 
     private val searchInput = EditText(context)
     private val recycler = RecyclerView(context)
     private lateinit var adapter: EmojiAdapter
     private val tabRecientes = TextView(context)
     private val tabFavoritos = TextView(context)
+    private val categoryButtons = mutableListOf<TextView>()
 
     init {
         orientation = VERTICAL
@@ -72,7 +77,7 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         searchBar.addView(closeBtn)
         addView(searchBar)
 
-        // Pestañas
+        // Pestañas Recientes / Favoritos
         val tabBar = LinearLayout(context).apply { orientation = HORIZONTAL }
         tabRecientes.apply {
             text = "Recientes"; gravity = Gravity.CENTER; setPadding(0, 16, 0, 16)
@@ -88,6 +93,30 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         tabBar.addView(tabRecientes)
         tabBar.addView(tabFavoritos)
         addView(tabBar)
+
+        // Fila de categorías (siempre visible, deslizable horizontalmente)
+        val categoryScroll = HorizontalScrollView(context).apply {
+            isHorizontalScrollBarEnabled = false
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        val categoryRow = LinearLayout(context).apply { orientation = HORIZONTAL }
+        EmojiData.categories.forEachIndexed { index, cat ->
+            val btn = TextView(context).apply {
+                text = cat.icon
+                textSize = 20f
+                gravity = Gravity.CENTER
+                setPadding(px(14f), px(10f), px(14f), px(10f))
+                setOnClickListener {
+                    currentTab = Tab.CATEGORIA
+                    currentCategoryIndex = index
+                    refreshContent()
+                }
+            }
+            categoryButtons.add(btn)
+            categoryRow.addView(btn)
+        }
+        categoryScroll.addView(categoryRow)
+        addView(categoryScroll)
 
         recycler.layoutManager = GridLayoutManager(context, 8)
         recycler.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
@@ -112,11 +141,16 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
     private fun refreshContent() {
         tabRecientes.setBackgroundColor(if (currentTab == Tab.RECIENTES) Color.parseColor("#E0E0FF") else Color.TRANSPARENT)
         tabFavoritos.setBackgroundColor(if (currentTab == Tab.FAVORITOS) Color.parseColor("#E0E0FF") else Color.TRANSPARENT)
+        categoryButtons.forEachIndexed { i, btn ->
+            val active = currentTab == Tab.CATEGORIA && i == currentCategoryIndex
+            btn.setBackgroundColor(if (active) Color.parseColor("#E0E0FF") else Color.TRANSPARENT)
+        }
 
         val list: List<String> = when (currentTab) {
             Tab.RECIENTES -> prefs.getRecentEmojis()
             Tab.FAVORITOS -> prefs.getFavoriteEmojis()
             Tab.BUSQUEDA -> EmojiData.search(searchInput.text.toString()).map { it.emoji }
+            Tab.CATEGORIA -> EmojiData.categories[currentCategoryIndex].items.map { it.emoji }
         }
         adapter.submit(list)
     }

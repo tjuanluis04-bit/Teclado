@@ -1,9 +1,12 @@
 package com.tecladoapp.keyboard
 
 import android.content.Context
+import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.view.Gravity
@@ -13,6 +16,8 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.PopupWindow
+import android.widget.TextView
 import kotlin.math.abs
 
 interface KeyboardListener {
@@ -85,7 +90,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
             Key(CODE_EMOJI, "", weight = 1f, isFunctionKey = true, iconRes = R.drawable.ic_emoji),
             Key(CODE_CLIPBOARD, "", weight = 1f, isFunctionKey = true, iconRes = R.drawable.ic_clipboard),
             Key(CODE_SPACE, "espacio", weight = 3.2f, isFunctionKey = true),
-            Key(CODE_PERIOD, ".", weight = 0.8f),
+            Key('.'.code, ".", weight = 0.8f),
             Key(CODE_ENTER, "", weight = 1.6f, isFunctionKey = true, iconRes = R.drawable.ic_enter)
         )
         addRow(rowH, bottomRow, isBottomRow = true)
@@ -190,10 +195,129 @@ class KeyboardView(context: Context) : LinearLayout(context) {
             wireEnterKey(view)
             return
         }
-        view.setOnClickListener {
-            vibrate()
-            handleTap(key)
+        val alternates = AccentMaps.forKey(key.code, key.isFunctionKey)
+        if (alternates.isNotEmpty()) {
+            wireKeyWithAccentPopup(view, key, alternates)
+        } else {
+            view.setOnClickListener {
+                vibrate()
+                handleTap(key)
+            }
         }
+    }
+
+    // --- popup de acentos/símbolos: mantener presionado + deslizar para elegir ---
+    private val longPressHandler = Handler(Looper.getMainLooper())
+    private var activePopup: PopupWindow? = null
+    private var activePopupItems: List<TextView> = emptyList()
+    private var activePopupChars: List<Char> = emptyList()
+    private var selectedPopupIndex = 0
+
+    private fun wireKeyWithAccentPopup(view: View, key: Key, alternates: List<Char>) {
+        var longPressTriggered = false
+        var pendingLongPress: Runnable? = null
+
+        view.setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    longPressTriggered = false
+                    vibrate()
+                    val r = Runnable {
+                        longPressTriggered = true
+                        showAccentPopup(v, alternates)
+                        selectedPopupIndex = 0
+                        highlightPopupIndex(0)
+                    }
+                    pendingLongPress = r
+                    longPressHandler.postDelayed(r, 350)
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (longPressTriggered) {
+                        val itemW = v.width.coerceAtLeast(1)
+                        var idx = (event.x / itemW).toInt()
+                        if (idx < 0) idx = 0
+                        if (idx > activePopupChars.lastIndex) idx = activePopupChars.lastIndex
+                        if (idx != selectedPopupIndex) {
+                            selectedPopupIndex = idx
+                            highlightPopupIndex(idx)
+                        }
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
+                    if (longPressTriggered) {
+                        val ch = activePopupChars.getOrNull(selectedPopupIndex)
+                        dismissAccentPopup()
+                        if (ch != null) commitChar(ch)
+                    } else {
+                        handleTap(key)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
+                    dismissAccentPopup()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun showAccentPopup(anchor: View, chars: List<Char>) {
+        activePopupChars = chars
+        val itemW = anchor.width.coerceAtLeast(px(40f))
+        val itemH = px(48f)
+        val row = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = px(8f).toFloat()
+            }
+        }
+        val tvs = chars.map { ch ->
+            TextView(context).apply {
+                text = ch.toString()
+                textSize = 18f
+                gravity = Gravity.CENTER
+                setTextColor(Color.BLACK)
+                layoutParams = LinearLayout.LayoutParams(itemW, itemH)
+            }
+        }
+        tvs.forEach { row.addView(it) }
+        activePopupItems = tvs
+
+        val pw = PopupWindow(row, itemW * chars.size, itemH, false)
+        pw.isOutsideTouchable = true
+        activePopup = pw
+        pw.showAsDropDown(anchor, 0, -(anchor.height + itemH))
+    }
+
+    private fun highlightPopupIndex(index: Int) {
+        activePopupItems.forEachIndexed { i, tv ->
+            if (i == index) {
+                tv.setBackgroundColor(theme.accentColor)
+                tv.setTextColor(Color.WHITE)
+            } else {
+                tv.setBackgroundColor(Color.WHITE)
+                tv.setTextColor(Color.BLACK)
+            }
+        }
+    }
+
+    private fun dismissAccentPopup() {
+        activePopup?.dismiss()
+        activePopup = null
+        activePopupItems = emptyList()
+        activePopupChars = emptyList()
+    }
+
+    private fun commitChar(ch: Char) {
+        val c = if (shiftOn && ch.isLetter()) ch.uppercaseChar() else ch
+        listener?.onKeyChar(c)
+        if (shiftOn) { shiftOn = false; listener?.onShiftToggled(false); rebuild() }
     }
 
     private fun handleTap(key: Key) {
@@ -204,7 +328,6 @@ class KeyboardView(context: Context) : LinearLayout(context) {
             CODE_SYMBOLS -> { showSymbols = !showSymbols; listener?.onSwitchToSymbols(showSymbols); rebuild() }
             CODE_EMOJI -> listener?.onOpenEmoji()
             CODE_CLIPBOARD -> listener?.onOpenClipboard()
-            CODE_PERIOD -> listener?.onKeyChar('.')
             else -> {
                 var c = key.code.toChar()
                 if (shiftOn && key.altLabel != null) c = key.altLabel.first()

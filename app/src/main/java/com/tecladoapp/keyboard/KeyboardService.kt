@@ -1,6 +1,5 @@
 package com.tecladoapp.keyboard
 
-import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Color
@@ -43,11 +42,12 @@ class KeyboardService : InputMethodService(), KeyboardListener {
         super.onDestroy()
     }
 
-    override fun onEvaluateFullscreenMode(): Boolean {
-        // Un teclado personalizado nunca debe usar el modo de pantalla completa
-        // de Android (el editor gigante que aplasta el teclado real).
-        return false
-    }
+    override fun onEvaluateFullscreenMode(): Boolean = false
+
+    private fun px(dp: Float) = (dp * resources.displayMetrics.density).toInt()
+    private fun toolbarHeightPx() = px(52f)
+    private fun suggestionBarHeightPx() = px(40f)
+    private fun keyboardHeightPx() = px(46f * 5 * prefs.keyboardHeightScale)
 
     override fun onCreateInputView(): View {
         return try {
@@ -69,14 +69,6 @@ class KeyboardService : InputMethodService(), KeyboardListener {
         }
     }
 
-    private fun debugBanner(): TextView = TextView(this).apply {
-        text = "TECLADO APP — BUILD DE DIAGNÓSTICO v3 — si ves este texto, el código nuevo SÍ está corriendo"
-        setBackgroundColor(Color.MAGENTA)
-        setTextColor(Color.BLACK)
-        textSize = 12f
-        setPadding(16, 16, 16, 16)
-    }
-
     private fun buildInputView(): View {
         val theme = ThemeCatalog.theme(prefs.themeId)
         val font = ThemeCatalog.font(prefs.fontId)
@@ -87,24 +79,20 @@ class KeyboardService : InputMethodService(), KeyboardListener {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
 
-        rootLayout.addView(debugBanner())
-
         toolbar = buildToolbar(theme)
-        toolbar.setBackgroundColor(Color.CYAN)
-        toolbar.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 150)
+        // Alto FIJO en píxeles exactos: WRAP_CONTENT se estiraba de forma
+        // impredecible en algunos dispositivos, así que no lo volvemos a usar aquí.
+        toolbar.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, toolbarHeightPx())
         rootLayout.addView(toolbar)
 
         suggestionBar = SuggestionBarView(this).apply {
             onSuggestionTap = { word -> replaceCurrentWord(word) }
-            setBackgroundColor(Color.YELLOW)
         }
-        suggestionBar.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 90)
-        suggestionBar.visibility = View.VISIBLE
+        suggestionBar.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, suggestionBarHeightPx())
         rootLayout.addView(suggestionBar)
 
         contentContainer = FrameLayout(this)
-        contentContainer.setBackgroundColor(Color.rgb(255, 140, 0)) // naranja
-        contentContainer.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 900)
+        contentContainer.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, keyboardHeightPx())
         rootLayout.addView(contentContainer)
 
         try {
@@ -113,8 +101,7 @@ class KeyboardService : InputMethodService(), KeyboardListener {
                 this.theme = theme
                 this.fontFamily = font.fontFamily
                 this.heightScale = prefs.keyboardHeightScale
-                setBackgroundColor(Color.GREEN)
-                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 900)
+                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, keyboardHeightPx())
             }
             showKeyboardView()
         } catch (e: Throwable) {
@@ -132,13 +119,13 @@ class KeyboardService : InputMethodService(), KeyboardListener {
             setBackgroundColor(darken(theme.backgroundColor))
         }
         val spacer = android.view.View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
         }
         fun iconButton(resId: Int, onClick: () -> Unit) = android.widget.ImageView(this).apply {
             setImageResource(resId)
             setColorFilter(theme.accentColor)
-            layoutParams = LinearLayout.LayoutParams(72, 72).apply { marginStart = 16 }
-            setPadding(12, 12, 12, 12)
+            layoutParams = LinearLayout.LayoutParams(px(40f), px(40f)).apply { marginStart = px(10f) }
+            setPadding(px(6f), px(6f), px(6f), px(6f))
             setOnClickListener { onClick() }
         }
         bar.addView(spacer)
@@ -202,6 +189,9 @@ class KeyboardService : InputMethodService(), KeyboardListener {
             keyboardView.theme = theme
             keyboardView.fontFamily = font.fontFamily
             keyboardView.heightScale = prefs.keyboardHeightScale
+            val kh = keyboardHeightPx()
+            keyboardView.layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, kh)
+            contentContainer.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, kh)
             showKeyboardView()
             updateSuggestions()
         } catch (e: Throwable) {

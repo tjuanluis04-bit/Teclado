@@ -888,6 +888,20 @@ object EmojiData {
         EmojiEntry("🇷🇺", listOf("rusia", "bandera"))
     )
 
+    data class Category(val name: String, val icon: String, val items: List<EmojiEntry>)
+
+    val categories: List<Category> = listOf(
+        Category("Caritas", "😀", smileys),
+        Category("Gestos", "👋", gestos),
+        Category("Animales", "🐶", animales),
+        Category("Comida", "🍎", comida),
+        Category("Actividades", "⚽", actividades),
+        Category("Viajes", "🚗", viajes),
+        Category("Objetos", "💡", objetos),
+        Category("Símbolos", "✅", simbolos),
+        Category("Banderas", "🏳️", banderas)
+    )
+
     val all: List<EmojiEntry> =
         smileys + gestos + animales + comida + actividades + viajes + objetos + simbolos + banderas
 
