@@ -21,6 +21,9 @@ class KeyboardService : InputMethodService(), KeyboardListener {
     private lateinit var contentContainer: FrameLayout
     private lateinit var keyboardView: KeyboardView
 
+    private var emojiSearchActive = false
+    private var currentEmojiPanel: EmojiPanelView? = null
+
     private var clipboardManager: ClipboardManager? = null
     private val clipListener = ClipboardManager.OnPrimaryClipChangedListener {
         val clip = clipboardManager?.primaryClip
@@ -166,6 +169,8 @@ class KeyboardService : InputMethodService(), KeyboardListener {
     }
 
     private fun showKeyboardView() {
+        exitEmojiSearchIfNeeded()
+        currentEmojiPanel = null
         contentContainer.removeAllViews()
         contentContainer.addView(keyboardView)
         suggestionBar.visibility = if (prefs.wordSuggestionsEnabled) View.VISIBLE else View.GONE
@@ -173,18 +178,67 @@ class KeyboardService : InputMethodService(), KeyboardListener {
 
     private fun showEmojiPanel() {
         val panel = EmojiPanelView(this, prefs)
+        currentEmojiPanel = panel
         panel.listener = object : EmojiPanelView.Listener {
             override fun onEmojiSelected(emoji: String) {
                 currentInputConnection?.commitText(emoji, 1)
             }
-            override fun onClose() { showKeyboardView() }
+            override fun onClose() {
+                exitEmojiSearchIfNeeded()
+                currentEmojiPanel = null
+                showKeyboardView()
+            }
+            override fun onEnterSearchMode(keyboardSlot: FrameLayout) {
+                (keyboardView.parent as? ViewGroup)?.removeView(keyboardView)
+                keyboardSlot.removeAllViews()
+                keyboardSlot.addView(keyboardView)
+                emojiSearchActive = true
+            }
+            override fun onExitSearchMode() {
+                (keyboardView.parent as? ViewGroup)?.removeView(keyboardView)
+                emojiSearchActive = false
+            }
+            override fun onDeleteLastEmoji() {
+                deleteLastEmojiOrChar()
+            }
         }
         contentContainer.removeAllViews()
         contentContainer.addView(panel)
         suggestionBar.visibility = View.GONE
     }
 
+    private fun exitEmojiSearchIfNeeded() {
+        if (emojiSearchActive) {
+            (keyboardView.parent as? ViewGroup)?.removeView(keyboardView)
+            emojiSearchActive = false
+        }
+    }
+
+    /** Borra el último emoji (o carácter) antes del cursor, sin partir secuencias
+     *  de varios puntos de código (banderas, ZWJ, selectores de variación, etc). */
+    private fun deleteLastEmojiOrChar() {
+        val ic = currentInputConnection ?: return
+        val before = ic.getTextBeforeCursor(16, 0)?.toString() ?: return
+        if (before.isEmpty()) return
+        var end = before.length
+        var start = Character.offsetByCodePoints(before, end, -1)
+        while (start > 0) {
+            val cp = Character.codePointAt(before, start)
+            val prevStart = Character.offsetByCodePoints(before, start, -1)
+            val prevCp = Character.codePointAt(before, prevStart)
+            val isJoinerOrModifier = prevCp == 0x200D || cp == 0xFE0F ||
+                (prevCp in 0x1F3FB..0x1F3FF) ||
+                (cp in 0x1F1E6..0x1F1FF && prevCp in 0x1F1E6..0x1F1FF)
+            if (isJoinerOrModifier) {
+                start = prevStart
+            } else break
+        }
+        ic.deleteSurroundingText(end - start, 0)
+    }
+
     private fun showClipboardPanel() {
+        exitEmojiSearchIfNeeded()
+        currentEmojiPanel = null
         val panel = ClipboardPanelView(this, prefs)
         panel.listener = object : ClipboardPanelView.Listener {
             override fun onPaste(text: String) {
@@ -221,16 +275,28 @@ class KeyboardService : InputMethodService(), KeyboardListener {
 
     // ---------- KeyboardListener ----------
     override fun onKeyChar(char: Char) {
+        if (emojiSearchActive) {
+            currentEmojiPanel?.appendSearchChar(char)
+            return
+        }
         currentInputConnection?.commitText(char.toString(), 1)
         updateSuggestions()
     }
 
     override fun onBackspace() {
+        if (emojiSearchActive) {
+            currentEmojiPanel?.removeSearchChar()
+            return
+        }
         currentInputConnection?.deleteSurroundingText(1, 0)
         updateSuggestions()
     }
 
     override fun onEnter() {
+        if (emojiSearchActive) {
+            currentEmojiPanel?.closeSearchFromKeyboard()
+            return
+        }
         currentInputConnection?.sendKeyEvent(
             android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER)
         )
@@ -240,6 +306,10 @@ class KeyboardService : InputMethodService(), KeyboardListener {
     }
 
     override fun onSpace() {
+        if (emojiSearchActive) {
+            currentEmojiPanel?.appendSearchChar(' ')
+            return
+        }
         currentInputConnection?.commitText(" ", 1)
         updateSuggestions()
     }
@@ -257,10 +327,12 @@ class KeyboardService : InputMethodService(), KeyboardListener {
     override fun onOpenClipboard() { showClipboardPanel() }
 
     override fun onEnterSwipeWord(direction: Int, extendSelection: Boolean) {
+        if (emojiSearchActive) return
         moveCursorByWord(direction, extendSelection)
     }
 
     override fun onCursorMove(direction: Int) {
+        if (emojiSearchActive) return
         val ic = currentInputConnection ?: return
         moveByRelative(ic, direction)
     }
