@@ -13,7 +13,8 @@ class SuggestionBarView(context: Context) : LinearLayout(context) {
 
     init {
         orientation = HORIZONTAL
-        setPadding(8, 8, 8, 8)
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(8, 0, 8, 0)
     }
 
     fun setSuggestions(words: List<String>, theme: KeyboardTheme) {
@@ -25,8 +26,9 @@ class SuggestionBarView(context: Context) : LinearLayout(context) {
                 gravity = Gravity.CENTER
                 setTextColor(theme.keyTextColor)
                 textSize = 14f
-                setPadding(16, 12, 16, 12)
-                layoutParams = LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                maxLines = 1
+                setPadding(16, 0, 16, 0)
+                layoutParams = LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
                 setOnClickListener { onSuggestionTap?.invoke(word) }
             }
             addView(tv)

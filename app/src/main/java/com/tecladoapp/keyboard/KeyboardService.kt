@@ -46,7 +46,7 @@ class KeyboardService : InputMethodService(), KeyboardListener {
 
     private fun px(dp: Float) = (dp * resources.displayMetrics.density).toInt()
     private fun toolbarHeightPx() = px(52f)
-    private fun suggestionBarHeightPx() = px(40f)
+    private fun suggestionBarHeightPx() = px(46f)
     private fun keyboardHeightPx() = px(46f * 5 * prefs.keyboardHeightScale)
 
     override fun onCreateInputView(): View {
@@ -128,11 +128,28 @@ class KeyboardService : InputMethodService(), KeyboardListener {
             setPadding(px(6f), px(6f), px(6f), px(6f))
             setOnClickListener { onClick() }
         }
+        val fontButton = TextView(this).apply {
+            text = "Aa"
+            textSize = 16f
+            setTextColor(theme.accentColor)
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(px(40f), px(40f)).apply { marginStart = px(10f) }
+            setOnClickListener { cycleFont() }
+        }
         bar.addView(spacer)
+        bar.addView(fontButton)
         bar.addView(iconButton(R.drawable.ic_clipboard) { showClipboardPanel() })
         bar.addView(iconButton(R.drawable.ic_emoji) { showEmojiPanel() })
         bar.addView(iconButton(R.drawable.ic_settings) { openSettings() })
         return bar
+    }
+
+    private fun cycleFont() {
+        val fonts = ThemeCatalog.fonts
+        val idx = fonts.indexOfFirst { it.id == prefs.fontId }.let { if (it < 0) 0 else it }
+        val next = fonts[(idx + 1) % fonts.size]
+        prefs.fontId = next.id
+        if (::keyboardView.isInitialized) keyboardView.fontFamily = next.fontFamily
     }
 
     private fun darken(color: Int): Int {
@@ -241,6 +258,11 @@ class KeyboardService : InputMethodService(), KeyboardListener {
 
     override fun onEnterSwipeWord(direction: Int, extendSelection: Boolean) {
         moveCursorByWord(direction, extendSelection)
+    }
+
+    override fun onCursorMove(direction: Int) {
+        val ic = currentInputConnection ?: return
+        moveByRelative(ic, direction)
     }
 
     // ---------- Sugerencias / ortografía ----------

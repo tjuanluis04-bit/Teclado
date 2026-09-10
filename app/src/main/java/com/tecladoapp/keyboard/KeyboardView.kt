@@ -19,6 +19,7 @@ import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
 import kotlin.math.abs
+import kotlin.math.ceil
 
 interface KeyboardListener {
     fun onKeyChar(char: Char)
@@ -31,6 +32,8 @@ interface KeyboardListener {
     fun onOpenClipboard()
     /** direction: -1 palabra a la izquierda, +1 palabra a la derecha */
     fun onEnterSwipeWord(direction: Int, extendSelection: Boolean)
+    /** direction: -1 un carácter a la izquierda, +1 un carácter a la derecha (deslizar la barra espaciadora) */
+    fun onCursorMove(direction: Int)
 }
 
 /**
@@ -49,6 +52,8 @@ class KeyboardView(context: Context) : LinearLayout(context) {
         set(value) { field = value; rebuild() }
 
     private var shiftOn = false
+    private var capsLock = false
+    private var lastShiftTapTime = 0L
     private var showSymbols = false
 
     private val density = context.resources.displayMetrics.density
@@ -87,9 +92,9 @@ class KeyboardView(context: Context) : LinearLayout(context) {
 
         val bottomRow = listOf(
             Key(CODE_SYMBOLS, if (showSymbols) "ABC" else "?123", weight = 1.4f, isFunctionKey = true),
-            Key(CODE_EMOJI, "", weight = 1f, isFunctionKey = true, iconRes = R.drawable.ic_emoji),
-            Key(CODE_CLIPBOARD, "", weight = 1f, isFunctionKey = true, iconRes = R.drawable.ic_clipboard),
-            Key(CODE_SPACE, "espacio", weight = 3.2f, isFunctionKey = true),
+            Key(','.code, ",", weight = 0.8f),
+            Key(CODE_SPACE, "espacio", weight = 3.0f, isFunctionKey = true),
+            Key('@'.code, "@", weight = 0.8f),
             Key('.'.code, ".", weight = 0.8f),
             Key(CODE_ENTER, "", weight = 1.6f, isFunctionKey = true, iconRes = R.drawable.ic_enter)
         )
@@ -98,7 +103,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
 
     private fun shiftKey() = Key(
         CODE_SHIFT, "", weight = 1.5f, isFunctionKey = true,
-        iconRes = if (shiftOn) R.drawable.ic_shift_active else R.drawable.ic_shift
+        iconRes = if (shiftOn || capsLock) R.drawable.ic_shift_active else R.drawable.ic_shift
     )
 
     private fun backspaceKey() = Key(CODE_BACKSPACE, "", weight = 1.5f, isFunctionKey = true, iconRes = R.drawable.ic_backspace)
@@ -128,7 +133,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
     }
 
     private fun applyMargins(view: View, weight: Float, height: Int) {
-        val m = px(2.5f)
+        val m = px(4.5f) // más separación entre teclas
         view.layoutParams = LinearLayout.LayoutParams(0, height, weight).apply {
             setMargins(m, m, m, m)
         }
@@ -143,7 +148,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
             val btn = ImageButton(context)
             btn.setImageResource(key.iconRes)
             btn.setColorFilter(theme.backgroundColor)
-            btn.background = functionBg
+            btn.background = if (key.code == CODE_SHIFT && capsLock) keyBackground(theme.accentColor, theme.accentColor) else functionBg
             btn.scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
             val pad = px(12f)
             btn.setPadding(pad, pad, pad, pad)
@@ -178,7 +183,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
     }
 
     private fun displayLabel(key: Key): String {
-        if (key.altLabel != null && shiftOn) return key.altLabel
+        if (key.altLabel != null && (shiftOn || capsLock)) return key.altLabel
         return key.label
     }
 
@@ -191,9 +196,10 @@ class KeyboardView(context: Context) : LinearLayout(context) {
     }
 
     private fun wireKey(view: View, key: Key) {
-        if (key.code == CODE_ENTER) {
-            wireEnterKey(view)
-            return
+        when (key.code) {
+            CODE_ENTER -> { wireEnterKey(view); return }
+            CODE_BACKSPACE -> { wireBackspaceKey(view); return }
+            CODE_SPACE -> { wireSpaceKey(view); return }
         }
         val alternates = AccentMaps.forKey(key.code, key.isFunctionKey)
         if (alternates.isNotEmpty()) {
@@ -206,11 +212,50 @@ class KeyboardView(context: Context) : LinearLayout(context) {
         }
     }
 
-    // --- popup de acentos/símbolos: mantener presionado + deslizar para elegir ---
+    private fun handleTap(key: Key) {
+        when (key.code) {
+            CODE_SHIFT -> handleShiftTap()
+            CODE_BACKSPACE -> listener?.onBackspace()
+            CODE_SPACE -> listener?.onSpace()
+            CODE_SYMBOLS -> { showSymbols = !showSymbols; listener?.onSwitchToSymbols(showSymbols); rebuild() }
+            CODE_EMOJI -> listener?.onOpenEmoji()
+            CODE_CLIPBOARD -> listener?.onOpenClipboard()
+            else -> {
+                var c = key.code.toChar()
+                if ((shiftOn || capsLock) && key.altLabel != null) c = key.altLabel.first()
+                listener?.onKeyChar(c)
+                if (shiftOn && !capsLock) { shiftOn = false; listener?.onShiftToggled(false); rebuild() }
+            }
+        }
+    }
+
+    /** Un toque normal alterna mayúsculas; doble toque activa Bloq Mayús. */
+    private fun handleShiftTap() {
+        val now = System.currentTimeMillis()
+        if (now - lastShiftTapTime < 350) {
+            capsLock = !capsLock
+            shiftOn = capsLock
+        } else if (capsLock) {
+            capsLock = false
+            shiftOn = false
+        } else {
+            shiftOn = !shiftOn
+        }
+        lastShiftTapTime = now
+        listener?.onShiftToggled(shiftOn)
+        rebuild()
+    }
+
+    // --- popup de acentos/símbolos en cuadrícula: mantener presionado + deslizar para elegir ---
     private val longPressHandler = Handler(Looper.getMainLooper())
     private var activePopup: PopupWindow? = null
     private var activePopupItems: List<TextView> = emptyList()
     private var activePopupChars: List<Char> = emptyList()
+    private var popupColumns = 1
+    private var popupXOffset = 0
+    private var popupHeightPx = 0
+    private var popupItemW = 0
+    private var popupItemH = 0
     private var selectedPopupIndex = 0
 
     private fun wireKeyWithAccentPopup(view: View, key: Key, alternates: List<Char>) {
@@ -234,10 +279,13 @@ class KeyboardView(context: Context) : LinearLayout(context) {
                 }
                 MotionEvent.ACTION_MOVE -> {
                     if (longPressTriggered) {
-                        val itemW = v.width.coerceAtLeast(1)
-                        var idx = (event.x / itemW).toInt()
-                        if (idx < 0) idx = 0
+                        val localX = event.x - popupXOffset
+                        val localY = event.y + popupHeightPx
+                        var col = (localX / popupItemW).toInt().coerceIn(0, popupColumns - 1)
+                        var row = (localY / popupItemH).toInt().coerceAtLeast(0)
+                        var idx = row * popupColumns + col
                         if (idx > activePopupChars.lastIndex) idx = activePopupChars.lastIndex
+                        if (idx < 0) idx = 0
                         if (idx != selectedPopupIndex) {
                             selectedPopupIndex = idx
                             highlightPopupIndex(idx)
@@ -268,31 +316,56 @@ class KeyboardView(context: Context) : LinearLayout(context) {
 
     private fun showAccentPopup(anchor: View, chars: List<Char>) {
         activePopupChars = chars
-        val itemW = anchor.width.coerceAtLeast(px(40f))
+        val itemW = anchor.width.coerceAtLeast(px(44f))
         val itemH = px(48f)
-        val row = LinearLayout(context).apply {
-            orientation = HORIZONTAL
+        val columns = when {
+            chars.size <= 3 -> chars.size
+            chars.size <= 8 -> 3
+            else -> 4
+        }.coerceAtLeast(1)
+        val rows = ceil(chars.size / columns.toFloat()).toInt()
+        popupColumns = columns
+
+        val grid = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
             background = GradientDrawable().apply {
                 setColor(Color.WHITE)
                 cornerRadius = px(8f).toFloat()
             }
         }
-        val tvs = chars.map { ch ->
-            TextView(context).apply {
-                text = ch.toString()
-                textSize = 18f
-                gravity = Gravity.CENTER
-                setTextColor(Color.BLACK)
-                layoutParams = LinearLayout.LayoutParams(itemW, itemH)
+        val tvs = mutableListOf<TextView>()
+        for (r in 0 until rows) {
+            val rowLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(itemW * columns, itemH)
             }
+            for (c in 0 until columns) {
+                val i = r * columns + c
+                val tv = TextView(context).apply {
+                    text = if (i < chars.size) chars[i].toString() else ""
+                    textSize = 18f
+                    gravity = Gravity.CENTER
+                    setTextColor(Color.BLACK)
+                    layoutParams = LinearLayout.LayoutParams(itemW, itemH)
+                }
+                rowLayout.addView(tv)
+                if (i < chars.size) tvs.add(tv)
+            }
+            grid.addView(rowLayout)
         }
-        tvs.forEach { row.addView(it) }
         activePopupItems = tvs
 
-        val pw = PopupWindow(row, itemW * chars.size, itemH, false)
+        val popupWidth = itemW * columns
+        val popupHeight = itemH * rows
+        popupHeightPx = popupHeight
+        popupItemW = itemW
+        popupItemH = itemH
+        popupXOffset = -(popupWidth - anchor.width) / 2
+
+        val pw = PopupWindow(grid, popupWidth, popupHeight, false)
         pw.isOutsideTouchable = true
         activePopup = pw
-        pw.showAsDropDown(anchor, 0, -(anchor.height + itemH))
+        pw.showAsDropDown(anchor, popupXOffset, -(anchor.height + popupHeight))
     }
 
     private fun highlightPopupIndex(index: Int) {
@@ -315,26 +388,9 @@ class KeyboardView(context: Context) : LinearLayout(context) {
     }
 
     private fun commitChar(ch: Char) {
-        val c = if (shiftOn && ch.isLetter()) ch.uppercaseChar() else ch
+        val c = if ((shiftOn || capsLock) && ch.isLetter()) ch.uppercaseChar() else ch
         listener?.onKeyChar(c)
-        if (shiftOn) { shiftOn = false; listener?.onShiftToggled(false); rebuild() }
-    }
-
-    private fun handleTap(key: Key) {
-        when (key.code) {
-            CODE_SHIFT -> { shiftOn = !shiftOn; listener?.onShiftToggled(shiftOn); rebuild() }
-            CODE_BACKSPACE -> listener?.onBackspace()
-            CODE_SPACE -> listener?.onSpace()
-            CODE_SYMBOLS -> { showSymbols = !showSymbols; listener?.onSwitchToSymbols(showSymbols); rebuild() }
-            CODE_EMOJI -> listener?.onOpenEmoji()
-            CODE_CLIPBOARD -> listener?.onOpenClipboard()
-            else -> {
-                var c = key.code.toChar()
-                if (shiftOn && key.altLabel != null) c = key.altLabel.first()
-                listener?.onKeyChar(c)
-                if (shiftOn) { shiftOn = false; listener?.onShiftToggled(false); rebuild() }
-            }
-        }
+        if (shiftOn && !capsLock) { shiftOn = false; listener?.onShiftToggled(false); rebuild() }
     }
 
     // --- gesto de deslizar el Enter: mover/seleccionar palabra por palabra ---
@@ -367,6 +423,105 @@ class KeyboardView(context: Context) : LinearLayout(context) {
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!moved) listener?.onEnter()
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> true
+                else -> false
+            }
+        }
+    }
+
+    // --- borrador: toque = borra 1; mantener presionado = borra seguido; deslizar a la
+    //     izquierda = "glide delete", borra proporcional a la distancia deslizada ---
+    private fun wireBackspaceKey(view: View) {
+        var startX = 0f
+        var dragAccum = 0f
+        var isDragging = false
+        var repeatRunnable: Runnable? = null
+        val dragThresholdPx = px(16f)
+        val dragActivatePx = px(10f)
+
+        fun stopRepeating() {
+            repeatRunnable?.let { longPressHandler.removeCallbacks(it) }
+            repeatRunnable = null
+        }
+        fun startRepeating() {
+            val r = object : Runnable {
+                override fun run() {
+                    listener?.onBackspace()
+                    longPressHandler.postDelayed(this, 55)
+                }
+            }
+            repeatRunnable = r
+            longPressHandler.postDelayed(r, 400)
+        }
+
+        view.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    vibrate()
+                    listener?.onBackspace()
+                    startX = event.x
+                    dragAccum = 0f
+                    isDragging = false
+                    startRepeating()
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.x - startX
+                    startX = event.x
+                    if (!isDragging && dx < -dragActivatePx) {
+                        isDragging = true
+                        stopRepeating()
+                    }
+                    if (isDragging) {
+                        dragAccum += dx
+                        while (dragAccum <= -dragThresholdPx) {
+                            listener?.onBackspace()
+                            dragAccum += dragThresholdPx
+                            vibrate()
+                        }
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    stopRepeating()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    // --- barra espaciadora: toque = espacio; deslizar = mover el cursor con precisión ---
+    private fun wireSpaceKey(view: View) {
+        var startX = 0f
+        var accum = 0f
+        var moved = false
+        val thresholdPx = px(16f)
+
+        view.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    startX = event.x
+                    accum = 0f
+                    moved = false
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.x - startX
+                    startX = event.x
+                    accum += dx
+                    while (abs(accum) >= thresholdPx) {
+                        val dir = if (accum > 0) 1 else -1
+                        listener?.onCursorMove(dir)
+                        accum -= dir * thresholdPx
+                        moved = true
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (!moved) { vibrate(); listener?.onSpace() }
                     true
                 }
                 MotionEvent.ACTION_CANCEL -> true
