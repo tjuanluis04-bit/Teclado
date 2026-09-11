@@ -10,6 +10,7 @@ const val CODE_COMMA = -7
 const val CODE_PERIOD = -8
 const val CODE_EMOJI = -9
 const val CODE_CLIPBOARD = -10
+const val CODE_SYMBOLS_PAGE = -11
 
 data class Key(
     val code: Int,
@@ -35,7 +36,13 @@ object KeyDefs {
     fun lettersRow2() = row2.map { Key(it.code, it.toString(), it.uppercaseChar().toString()) }
     fun lettersRow3() = row3.map { Key(it.code, it.toString(), it.uppercaseChar().toString()) }
 
-    val symbolsRow1 = "@#\$_&-+()".map { Key(it.code, it.toString()) }
-    val symbolsRow2 = "*\"':;!?".map { Key(it.code, it.toString()) }
-    val symbolsRow3 = "/,.".map { Key(it.code, it.toString()) }
+    // ---------- Página 1 de símbolos ----------
+    val symbolsPage1Row1 = "%\\|=[]<>{}".map { Key(it.code, it.toString()) }
+    val symbolsPage1Row2 = "@#\$_&-+()".map { Key(it.code, it.toString()) }
+    val symbolsPage1Row3 = "*\"':;!?".map { Key(it.code, it.toString()) }
+
+    // ---------- Página 2 de símbolos ----------
+    val symbolsPage2Row1 = "~`|·√π÷×¶∆".map { Key(it.code, it.toString()) }
+    val symbolsPage2Row2 = "£¢€¥^°={}".map { Key(it.code, it.toString()) }
+    val symbolsPage2Row3 = "\\©®™%[]".map { Key(it.code, it.toString()) }
 }

@@ -55,9 +55,10 @@ class KeyboardView(context: Context) : LinearLayout(context) {
     private var capsLock = false
     private var lastShiftTapTime = 0L
     private var showSymbols = false
+    private var symbolsSecondPage = false
 
     private val density = context.resources.displayMetrics.density
-    private val baseRowHeightDp = 46f
+    private val baseRowHeightDp = 52f
 
     init {
         orientation = VERTICAL
@@ -80,12 +81,22 @@ class KeyboardView(context: Context) : LinearLayout(context) {
             row3.addAll(KeyDefs.lettersRow3())
             row3.add(backspaceKey())
             addRow(rowH, row3)
-        } else {
-            addRow(rowH, KeyDefs.symbolsRow1)
-            addRow(rowH, KeyDefs.symbolsRow2)
+        } else if (!symbolsSecondPage) {
+            addRow(rowH, KeyDefs.numberRow)
+            addRow(rowH, KeyDefs.symbolsPage1Row1)
+            addRow(rowH, KeyDefs.symbolsPage1Row2)
             val row3 = mutableListOf<Key>()
-            row3.add(shiftKey())
-            row3.addAll(KeyDefs.symbolsRow3)
+            row3.add(symbolsPageToggleKey())
+            row3.addAll(KeyDefs.symbolsPage1Row3)
+            row3.add(backspaceKey())
+            addRow(rowH, row3)
+        } else {
+            addRow(rowH, KeyDefs.numberRow)
+            addRow(rowH, KeyDefs.symbolsPage2Row1)
+            addRow(rowH, KeyDefs.symbolsPage2Row2)
+            val row3 = mutableListOf<Key>()
+            row3.add(symbolsPageToggleKey())
+            row3.addAll(KeyDefs.symbolsPage2Row3)
             row3.add(backspaceKey())
             addRow(rowH, row3)
         }
@@ -107,6 +118,12 @@ class KeyboardView(context: Context) : LinearLayout(context) {
     )
 
     private fun backspaceKey() = Key(CODE_BACKSPACE, "", weight = 1.5f, isFunctionKey = true, iconRes = R.drawable.ic_backspace)
+
+    private fun symbolsPageToggleKey() = Key(
+        CODE_SYMBOLS_PAGE,
+        if (symbolsSecondPage) "?123" else "=\\<",
+        weight = 1.5f, isFunctionKey = true
+    )
 
     private fun addRow(rowH: Int, keys: List<Key>, sidePaddingWeight: Float = 0f, isBottomRow: Boolean = false) {
         val row = LinearLayout(context).apply {
@@ -133,7 +150,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
     }
 
     private fun applyMargins(view: View, weight: Float, height: Int) {
-        val m = px(4.5f) // más separación entre teclas
+        val m = px(2.5f) // separación más ajustada, como en la imagen de referencia
         view.layoutParams = LinearLayout.LayoutParams(0, height, weight).apply {
             setMargins(m, m, m, m)
         }
@@ -161,7 +178,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
         btn.text = if (key.code == CODE_SPACE) "" else displayLabel(key)
         btn.isAllCaps = false
         btn.typeface = tf
-        btn.textSize = 16f
+        btn.textSize = 19f
         btn.setPadding(0, 0, 0, 0)
         btn.minWidth = 0
         btn.minimumWidth = 0
@@ -217,7 +234,8 @@ class KeyboardView(context: Context) : LinearLayout(context) {
             CODE_SHIFT -> handleShiftTap()
             CODE_BACKSPACE -> listener?.onBackspace()
             CODE_SPACE -> listener?.onSpace()
-            CODE_SYMBOLS -> { showSymbols = !showSymbols; listener?.onSwitchToSymbols(showSymbols); rebuild() }
+            CODE_SYMBOLS -> { showSymbols = !showSymbols; symbolsSecondPage = false; listener?.onSwitchToSymbols(showSymbols); rebuild() }
+            CODE_SYMBOLS_PAGE -> { symbolsSecondPage = !symbolsSecondPage; rebuild() }
             CODE_EMOJI -> listener?.onOpenEmoji()
             CODE_CLIPBOARD -> listener?.onOpenClipboard()
             else -> {

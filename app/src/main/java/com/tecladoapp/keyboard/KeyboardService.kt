@@ -50,7 +50,7 @@ class KeyboardService : InputMethodService(), KeyboardListener {
     private fun px(dp: Float) = (dp * resources.displayMetrics.density).toInt()
     private fun toolbarHeightPx() = px(52f)
     private fun suggestionBarHeightPx() = px(46f)
-    private fun keyboardHeightPx() = px(46f * 5 * prefs.keyboardHeightScale)
+    private fun keyboardHeightPx() = px(52f * 5 * prefs.keyboardHeightScale)
 
     override fun onCreateInputView(): View {
         return try {
