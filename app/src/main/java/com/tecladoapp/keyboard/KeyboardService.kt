@@ -138,8 +138,8 @@ class KeyboardService : InputMethodService(), KeyboardListener {
             setTextColor(theme.accentColor)
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(px(40f), px(40f)).apply { marginStart = px(10f) }
-            setOnClickListener { showFontPicker(fontButton) }
         }
+        fontButton.setOnClickListener { showFontPicker(fontButton) }
         bar.addView(spacer)
         bar.addView(fontButton)
         bar.addView(iconButton(R.drawable.ic_clipboard) { showClipboardPanel() })
