@@ -93,6 +93,7 @@ class KeyboardService : InputMethodService(), KeyboardListener {
         }
         suggestionBar.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, suggestionBarHeightPx())
         rootLayout.addView(suggestionBar)
+        suggestionBar.fontFamily = font.fontFamily
 
         contentContainer = FrameLayout(this)
         contentContainer.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, keyboardHeightPx())
@@ -137,7 +138,7 @@ class KeyboardService : InputMethodService(), KeyboardListener {
             setTextColor(theme.accentColor)
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(px(40f), px(40f)).apply { marginStart = px(10f) }
-            setOnClickListener { cycleFont() }
+            setOnClickListener { showFontPicker(fontButton) }
         }
         bar.addView(spacer)
         bar.addView(fontButton)
@@ -147,12 +148,41 @@ class KeyboardService : InputMethodService(), KeyboardListener {
         return bar
     }
 
-    private fun cycleFont() {
+    private fun showFontPicker(anchor: View) {
         val fonts = ThemeCatalog.fonts
-        val idx = fonts.indexOfFirst { it.id == prefs.fontId }.let { if (it < 0) 0 else it }
-        val next = fonts[(idx + 1) % fonts.size]
-        prefs.fontId = next.id
-        if (::keyboardView.isInitialized) keyboardView.fontFamily = next.fontFamily
+        val list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.parseColor("#2A2A2A"))
+                cornerRadius = px(10f).toFloat()
+            }
+        }
+        val popup = android.widget.PopupWindow(
+            list, px(220f), ViewGroup.LayoutParams.WRAP_CONTENT, true
+        )
+        popup.isOutsideTouchable = true
+
+        fonts.forEach { font ->
+            val row = TextView(this).apply {
+                text = font.displayName
+                textSize = 15f
+                setTextColor(Color.WHITE)
+                setPadding(px(20f), px(14f), px(20f), px(14f))
+                typeface = font.fontFamily?.let { android.graphics.Typeface.create(it, android.graphics.Typeface.NORMAL) }
+                    ?: android.graphics.Typeface.DEFAULT
+                if (font.id == prefs.fontId) {
+                    setBackgroundColor(Color.parseColor("#3A3A5A"))
+                }
+                setOnClickListener {
+                    prefs.fontId = font.id
+                    if (::keyboardView.isInitialized) keyboardView.fontFamily = font.fontFamily
+                    suggestionBar.fontFamily = font.fontFamily
+                    popup.dismiss()
+                }
+            }
+            list.addView(row)
+        }
+        popup.showAsDropDown(anchor, 0, 0)
     }
 
     private fun darken(color: Int): Int {
@@ -259,6 +289,7 @@ class KeyboardService : InputMethodService(), KeyboardListener {
             val font = ThemeCatalog.font(prefs.fontId)
             keyboardView.theme = theme
             keyboardView.fontFamily = font.fontFamily
+            suggestionBar.fontFamily = font.fontFamily
             keyboardView.heightScale = prefs.keyboardHeightScale
             val kh = keyboardHeightPx()
             keyboardView.layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, kh)

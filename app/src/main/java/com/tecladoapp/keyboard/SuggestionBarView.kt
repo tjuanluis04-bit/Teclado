@@ -10,6 +10,7 @@ import android.widget.TextView
 class SuggestionBarView(context: Context) : LinearLayout(context) {
 
     var onSuggestionTap: ((String) -> Unit)? = null
+    var fontFamily: String? = null
 
     init {
         orientation = HORIZONTAL
@@ -20,6 +21,8 @@ class SuggestionBarView(context: Context) : LinearLayout(context) {
     fun setSuggestions(words: List<String>, theme: KeyboardTheme) {
         removeAllViews()
         setBackgroundColor(theme.backgroundColor)
+        val tf = fontFamily?.let { android.graphics.Typeface.create(it, android.graphics.Typeface.NORMAL) }
+            ?: android.graphics.Typeface.DEFAULT
         words.take(3).forEach { word ->
             val tv = TextView(context).apply {
                 text = word
@@ -27,6 +30,7 @@ class SuggestionBarView(context: Context) : LinearLayout(context) {
                 setTextColor(theme.keyTextColor)
                 textSize = 14f
                 maxLines = 1
+                typeface = tf
                 setPadding(16, 0, 16, 0)
                 layoutParams = LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
                 setOnClickListener { onSuggestionTap?.invoke(word) }

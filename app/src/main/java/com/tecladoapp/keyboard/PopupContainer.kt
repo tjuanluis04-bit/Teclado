@@ -15,18 +15,24 @@ class PopupContainer(private val context: Context) {
 
     private var popupWindow: PopupWindow? = null
 
-    fun show(contentView: View, title: String) {
+    /**
+     * @param anchor una vista que YA esté adjunta a la ventana (por ejemplo, el panel
+     * que la invoca). Es indispensable pasarla: no se puede usar contentView como ancla
+     * porque todavía no está adjunto a nada en este punto.
+     */
+    fun show(contentView: View, title: String, anchor: View) {
         val card = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(24, 24, 24, 24)
+            setPadding(32, 28, 32, 28)
             background = GradientDrawable().apply {
-                setColor(Color.WHITE)
+                setColor(Color.parseColor("#2A2A2A"))
                 cornerRadius = 24f
             }
         }
         val titleView = TextView(context).apply {
             text = title
             textSize = 15f
+            setTextColor(Color.WHITE)
             setPadding(0, 0, 0, 16)
         }
         card.addView(titleView)
@@ -40,12 +46,7 @@ class PopupContainer(private val context: Context) {
         )
         pw.isOutsideTouchable = true
         popupWindow = pw
-
-        // Se ancla dentro del propio contentView del panel; usamos showAtLocation vía la vista pasada.
-        contentView.post {
-            val anchor = contentView.rootView
-            pw.showAtLocation(anchor, Gravity.CENTER, 0, 0)
-        }
+        pw.showAtLocation(anchor, Gravity.CENTER, 0, 0)
     }
 
     fun dismiss() {

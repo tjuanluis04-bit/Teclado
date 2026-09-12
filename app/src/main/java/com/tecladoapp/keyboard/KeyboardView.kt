@@ -150,7 +150,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
     }
 
     private fun applyMargins(view: View, weight: Float, height: Int) {
-        val m = px(2.5f) // separación más ajustada, como en la imagen de referencia
+        val m = px(4f) // separación tipo Gboard, como en la imagen de referencia
         view.layoutParams = LinearLayout.LayoutParams(0, height, weight).apply {
             setMargins(m, m, m, m)
         }

@@ -43,7 +43,7 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
 
     init {
         orientation = VERTICAL
-        setBackgroundColor(Color.parseColor("#F5F5F5"))
+        setBackgroundColor(Color.parseColor("#161616"))
 
         // Barra superior: lupa/buscador + borrador (para borrar emoji ya insertados) + cerrar
         val searchBar = LinearLayout(context).apply {
@@ -53,30 +53,30 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         }
         val lupa = ImageView(context).apply {
             setImageResource(R.drawable.ic_search)
-            setColorFilter(Color.parseColor("#888888"))
+            setColorFilter(Color.parseColor("#999999"))
             layoutParams = LinearLayout.LayoutParams(px(22f), px(22f)).apply { marginEnd = 12 }
         }
         searchQueryText.apply {
             text = "Buscar emoji…"
-            setTextColor(Color.parseColor("#888888"))
+            setTextColor(Color.parseColor("#999999"))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         exitSearchIcon.apply {
             setImageResource(R.drawable.ic_close)
-            setColorFilter(Color.parseColor("#888888"))
+            setColorFilter(Color.parseColor("#999999"))
             layoutParams = LinearLayout.LayoutParams(px(22f), px(22f)).apply { marginEnd = 16 }
             visibility = View.GONE
             setOnClickListener { exitSearch() }
         }
         val deleteBtn = ImageView(context).apply {
             setImageResource(R.drawable.ic_backspace)
-            setColorFilter(Color.parseColor("#555555"))
+            setColorFilter(Color.parseColor("#CCCCCC"))
             layoutParams = LinearLayout.LayoutParams(px(24f), px(24f)).apply { marginEnd = 16 }
             setOnClickListener { listener?.onDeleteLastEmoji() }
         }
         val closeBtn = ImageView(context).apply {
             setImageResource(R.drawable.ic_close)
-            setColorFilter(Color.parseColor("#555555"))
+            setColorFilter(Color.parseColor("#CCCCCC"))
             layoutParams = LinearLayout.LayoutParams(px(22f), px(22f))
             setOnClickListener { listener?.onClose() }
         }
@@ -91,12 +91,15 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         // Pestañas Recientes / Favoritos
         tabRecientes.apply {
             text = "Recientes"; gravity = Gravity.CENTER; setPadding(0, 16, 0, 16)
+            setTextColor(Color.parseColor("#EAEAEA"))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setOnClickListener { currentTab = Tab.RECIENTES; refreshContent() }
         }
         tabFavoritos.apply {
             text = "  Favoritos"; gravity = Gravity.CENTER; setPadding(0, 16, 0, 16)
+            setTextColor(Color.parseColor("#EAEAEA"))
             setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_star, 0, 0, 0)
+            compoundDrawableTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#EAEAEA"))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setOnClickListener { currentTab = Tab.FAVORITOS; refreshContent() }
         }
@@ -121,7 +124,7 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         EmojiDataFull.categories.forEachIndexed { index, _ ->
             val btn = ImageView(context).apply {
                 setImageResource(categoryIcons.getOrElse(index) { R.drawable.ic_cat_objects })
-                setColorFilter(Color.parseColor("#555555"))
+                setColorFilter(Color.parseColor("#999999"))
                 layoutParams = LinearLayout.LayoutParams(px(44f), px(44f)).apply {
                     setMargins(px(4f), px(6f), px(4f), px(6f))
                 }
@@ -192,10 +195,10 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
     private fun updateSearchQueryText() {
         if (searchMode) {
             searchQueryText.text = if (searchQuery.isEmpty()) "Escribe para buscar…" else searchQuery.toString()
-            searchQueryText.setTextColor(Color.parseColor("#333333"))
+            searchQueryText.setTextColor(Color.parseColor("#EAEAEA"))
         } else {
             searchQueryText.text = "Buscar emoji…"
-            searchQueryText.setTextColor(Color.parseColor("#888888"))
+            searchQueryText.setTextColor(Color.parseColor("#999999"))
         }
     }
 
@@ -219,11 +222,11 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
     }
 
     private fun refreshContent() {
-        tabRecientes.setBackgroundColor(if (currentTab == Tab.RECIENTES) Color.parseColor("#E0E0FF") else Color.TRANSPARENT)
-        tabFavoritos.setBackgroundColor(if (currentTab == Tab.FAVORITOS) Color.parseColor("#E0E0FF") else Color.TRANSPARENT)
+        tabRecientes.setBackgroundColor(if (currentTab == Tab.RECIENTES) Color.parseColor("#33445577") else Color.TRANSPARENT)
+        tabFavoritos.setBackgroundColor(if (currentTab == Tab.FAVORITOS) Color.parseColor("#33445577") else Color.TRANSPARENT)
         categoryButtons.forEachIndexed { i, btn ->
             val active = currentTab == Tab.CATEGORIA && i == currentCategoryIndex
-            btn.setColorFilter(if (active) Color.parseColor("#4C6FFF") else Color.parseColor("#555555"))
+            btn.setColorFilter(if (active) Color.parseColor("#6C8CFF") else Color.parseColor("#999999"))
         }
 
         val list: List<String> = when (currentTab) {
