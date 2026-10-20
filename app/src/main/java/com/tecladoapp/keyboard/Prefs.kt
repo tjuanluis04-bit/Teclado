@@ -18,10 +18,10 @@ class Prefs(context: Context) {
         get() = sp.getString("font_id", "sistema") ?: "sistema"
         set(v) = sp.edit().putString("font_id", v).apply()
 
-    /** Altura del teclado, 0.8 - 1.4 (multiplicador sobre la altura base) */
+    /** Altura del teclado, 0.9 - 1.6 (multiplicador). Por defecto: versión grande. */
     var keyboardHeightScale: Float
-        get() = sp.getFloat("kb_height_scale", 1.0f)
-        set(v) = sp.edit().putFloat("kb_height_scale", v).apply()
+        get() = sp.getFloat("kb_height_scale_v2", 1.2f)
+        set(v) = sp.edit().putFloat("kb_height_scale_v2", v).apply()
 
     var spellCheckEnabled: Boolean
         get() = sp.getBoolean("spell_check_enabled", true)
@@ -176,6 +176,38 @@ class Prefs(context: Context) {
         // los clips de esa categoría vuelven a quedar sin categoría
         val clips = getRecentClips().map { if (it.categoryId == id) it.copy(categoryId = null) else it }
         saveRecentClips(clips)
+    }
+
+    // ---------- Términos / definiciones / analogías ----------
+    fun getTerms(): MutableList<TermEntry> {
+        val arr = JSONArray(sp.getString("terms", "[]") ?: "[]")
+        return MutableList(arr.length()) {
+            val o = arr.getJSONObject(it)
+            TermEntry(o.getString("id"), o.optString("cat"), o.optString("term"), o.optString("def"), o.optString("ana"))
+        }
+    }
+    fun saveTerms(list: List<TermEntry>) {
+        val arr = JSONArray()
+        list.forEach {
+            arr.put(JSONObject().put("id", it.id).put("cat", it.category).put("term", it.term).put("def", it.definition).put("ana", it.analogy))
+        }
+        sp.edit().putString("terms", arr.toString()).apply()
+    }
+    fun addTerm(e: TermEntry) { val l = getTerms(); l.add(0, e); saveTerms(l) }
+    fun deleteTerm(id: String) = saveTerms(getTerms().filterNot { it.id == id })
+
+    // ---------- Palabras usadas (predicción) ----------
+    fun getWordFreq(): MutableMap<String, Int> {
+        val o = JSONObject(sp.getString("word_freq", "{}") ?: "{}")
+        val m = mutableMapOf<String, Int>()
+        o.keys().forEach { m[it] = o.getInt(it) }
+        return m
+    }
+    fun saveWordFreq(m: Map<String, Int>) {
+        val o = JSONObject()
+        // conservar solo las 1500 más usadas
+        m.entries.sortedByDescending { it.value }.take(1500).forEach { o.put(it.key, it.value) }
+        sp.edit().putString("word_freq", o.toString()).apply()
     }
 
     // ---------- Emojis ----------

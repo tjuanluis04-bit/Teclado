@@ -27,3 +27,11 @@ data class KeyboardFont(
     val displayName: String,
     val fontFamily: String? // null = tipografía del sistema
 )
+
+data class TermEntry(
+    val id: String,
+    val category: String,
+    val term: String,
+    val definition: String,
+    val analogy: String
+)

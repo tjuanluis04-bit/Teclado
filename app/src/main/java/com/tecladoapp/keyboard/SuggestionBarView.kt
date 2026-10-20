@@ -28,7 +28,7 @@ class SuggestionBarView(context: Context) : LinearLayout(context) {
                 text = word
                 gravity = Gravity.CENTER
                 setTextColor(theme.keyTextColor)
-                textSize = 14f
+                textSize = 18f
                 maxLines = 1
                 typeface = tf
                 setPadding(16, 0, 16, 0)

@@ -56,11 +56,12 @@ class SettingsActivity : AppCompatActivity() {
             override fun onNothingSelected(p: android.widget.AdapterView<*>?) {}
         }
 
-        // seek 0..60 -> escala 0.8 .. 1.4
-        seekHeight.progress = (((prefs.keyboardHeightScale - 0.8f) / 0.6f) * 60).toInt().coerceIn(0, 60)
+        // seek 0..70 -> escala 0.9 .. 1.6
+        seekHeight.max = 70
+        seekHeight.progress = (((prefs.keyboardHeightScale - 0.9f) / 0.7f) * 70).toInt().coerceIn(0, 70)
         seekHeight.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                prefs.keyboardHeightScale = 0.8f + (progress / 60f) * 0.6f
+                prefs.keyboardHeightScale = 0.9f + (progress / 70f) * 0.7f
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) {}

@@ -9,17 +9,22 @@ import android.widget.*
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
-class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(context) {
+class EmojiPanelView(context: Context, private val prefs: Prefs, private val inlineProvider: InlineKeyboardProvider) : LinearLayout(context), InlineInputHost {
 
     interface Listener {
         fun onEmojiSelected(emoji: String)
         fun onClose()
-        fun onEnterSearchMode(keyboardSlot: FrameLayout)
-        fun onExitSearchMode()
         fun onDeleteLastEmoji()
     }
 
     var listener: Listener? = null
+
+    private companion object {
+        val glyphPaint = android.graphics.Paint()
+        val glyphCache = HashMap<String, Boolean>()
+        /** true si la tipografía del teléfono sabe dibujar ese emoji (evita cuadritos rotos como 🫪). */
+        fun supported(e: String): Boolean = glyphCache.getOrPut(e) { glyphPaint.hasGlyph(e) }
+    }
 
     private enum class Tab { RECIENTES, FAVORITOS, BUSQUEDA, CATEGORIA }
     private var currentTab = Tab.RECIENTES
@@ -33,6 +38,7 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
     private val searchQueryText = TextView(context)
     private val exitSearchIcon = ImageView(context)
     private val recycler = RecyclerView(context)
+    private val recyclerHolder = FrameLayout(context)
     private lateinit var adapter: EmojiAdapter
     private val tabBar = LinearLayout(context)
     private val tabRecientes = TextView(context)
@@ -54,49 +60,43 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         val lupa = ImageView(context).apply {
             setImageResource(R.drawable.ic_search)
             setColorFilter(Color.parseColor("#999999"))
-            layoutParams = LinearLayout.LayoutParams(px(22f), px(22f)).apply { marginEnd = 12 }
+            layoutParams = LinearLayout.LayoutParams(px(30f), px(30f)).apply { marginEnd = 12 }
         }
         searchQueryText.apply {
             text = "Buscar emoji…"
+            textSize = 18f
             setTextColor(Color.parseColor("#999999"))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         exitSearchIcon.apply {
             setImageResource(R.drawable.ic_close)
             setColorFilter(Color.parseColor("#999999"))
-            layoutParams = LinearLayout.LayoutParams(px(22f), px(22f)).apply { marginEnd = 16 }
+            layoutParams = LinearLayout.LayoutParams(px(32f), px(32f)).apply { marginEnd = 16 }
             visibility = View.GONE
             setOnClickListener { exitSearch() }
-        }
-        val deleteBtn = ImageView(context).apply {
-            setImageResource(R.drawable.ic_backspace)
-            setColorFilter(Color.parseColor("#CCCCCC"))
-            layoutParams = LinearLayout.LayoutParams(px(24f), px(24f)).apply { marginEnd = 16 }
-            setOnClickListener { listener?.onDeleteLastEmoji() }
         }
         val closeBtn = ImageView(context).apply {
             setImageResource(R.drawable.ic_close)
             setColorFilter(Color.parseColor("#CCCCCC"))
-            layoutParams = LinearLayout.LayoutParams(px(22f), px(22f))
+            layoutParams = LinearLayout.LayoutParams(px(32f), px(32f))
             setOnClickListener { listener?.onClose() }
         }
         searchBar.addView(lupa)
         searchBar.addView(searchQueryText)
         searchBar.addView(exitSearchIcon)
-        searchBar.addView(deleteBtn)
         searchBar.addView(closeBtn)
         searchBar.setOnClickListener { if (!searchMode) enterSearch() }
         addView(searchBar)
 
         // Pestañas Recientes / Favoritos
         tabRecientes.apply {
-            text = "Recientes"; gravity = Gravity.CENTER; setPadding(0, 16, 0, 16)
+            text = "Recientes"; textSize = 17f; gravity = Gravity.CENTER; setPadding(0, 22, 0, 22)
             setTextColor(Color.parseColor("#EAEAEA"))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setOnClickListener { currentTab = Tab.RECIENTES; refreshContent() }
         }
         tabFavoritos.apply {
-            text = "  Favoritos"; gravity = Gravity.CENTER; setPadding(0, 16, 0, 16)
+            text = "  Favoritos"; textSize = 17f; gravity = Gravity.CENTER; setPadding(0, 22, 0, 22)
             setTextColor(Color.parseColor("#EAEAEA"))
             setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_star, 0, 0, 0)
             compoundDrawableTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#EAEAEA"))
@@ -108,9 +108,23 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         tabBar.addView(tabFavoritos)
         addView(tabBar)
 
-        recycler.layoutManager = GridLayoutManager(context, 8)
-        recycler.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
-        addView(recycler)
+        recycler.layoutManager = GridLayoutManager(context, 7)
+        recycler.layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        recyclerHolder.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+        recyclerHolder.addView(recycler)
+        // Borrador de emojis: fuera del buscador, flotante; solo borra, no activa el teclado
+        val deleteBtn = ImageView(context).apply {
+            setImageResource(R.drawable.ic_backspace)
+            setColorFilter(Color.WHITE)
+            setPadding(px(12f), px(12f), px(12f), px(12f))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.parseColor("#CC2A2A2A")); cornerRadius = px(14f).toFloat()
+            }
+            layoutParams = FrameLayout.LayoutParams(px(56f), px(48f), Gravity.BOTTOM or Gravity.END).apply { setMargins(0, 0, px(10f), px(10f)) }
+            setOnClickListener { listener?.onDeleteLastEmoji() }
+        }
+        recyclerHolder.addView(deleteBtn)
+        addView(recyclerHolder)
 
         // Fila de categorías con iconos propios (no emojis), scroll horizontal, abajo
         categoryScroll.isHorizontalScrollBarEnabled = false
@@ -125,10 +139,10 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
             val btn = ImageView(context).apply {
                 setImageResource(categoryIcons.getOrElse(index) { R.drawable.ic_cat_objects })
                 setColorFilter(Color.parseColor("#999999"))
-                layoutParams = LinearLayout.LayoutParams(px(44f), px(44f)).apply {
+                layoutParams = LinearLayout.LayoutParams(px(56f), px(56f)).apply {
                     setMargins(px(4f), px(6f), px(4f), px(6f))
                 }
-                setPadding(px(8f), px(8f), px(8f), px(8f))
+                setPadding(px(11f), px(11f), px(11f), px(11f))
                 setOnClickListener {
                     currentTab = Tab.CATEGORIA
                     currentCategoryIndex = index
@@ -166,7 +180,7 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         searchQuery.clear()
         currentTab = Tab.BUSQUEDA
         applySearchModeUi()
-        listener?.onEnterSearchMode(keyboardSlot)
+        inlineProvider.attachInlineKeyboard(keyboardSlot, this, extraHeightPx = px(190f))
         refreshContent()
     }
 
@@ -175,7 +189,7 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         searchQuery.clear()
         currentTab = Tab.RECIENTES
         applySearchModeUi()
-        listener?.onExitSearchMode()
+        inlineProvider.detachInlineKeyboard()
         refreshContent()
     }
 
@@ -184,8 +198,8 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         categoryScroll.visibility = if (searchMode) View.GONE else View.VISIBLE
         exitSearchIcon.visibility = if (searchMode) View.VISIBLE else View.GONE
         keyboardSlot.visibility = if (searchMode) View.VISIBLE else View.GONE
-        recycler.layoutParams = if (searchMode) {
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(110f))
+        recyclerHolder.layoutParams = if (searchMode) {
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(130f))
         } else {
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
         }
@@ -215,6 +229,10 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         refreshContent()
     }
 
+    override fun onInlineChar(c: Char) { appendSearchChar(c) }
+    override fun onInlineBackspace() { removeSearchChar() }
+    override fun onInlineEnter() { closeSearchFromKeyboard() }
+
     fun isInSearchMode(): Boolean = searchMode
 
     fun closeSearchFromKeyboard() {
@@ -235,7 +253,7 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
             Tab.BUSQUEDA -> EmojiDataFull.search(searchQuery.toString()).map { it.emoji }
             Tab.CATEGORIA -> EmojiDataFull.categories[currentCategoryIndex].items.map { it.emoji }
         }
-        adapter.submit(list)
+        adapter.submit(list.filter { supported(it) })
     }
 
     private class EmojiAdapter(
@@ -252,7 +270,7 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
             val frame = FrameLayout(parent.context)
             val tv = TextView(parent.context).apply {
-                textSize = 24f
+                textSize = 30f
                 gravity = Gravity.CENTER
                 setPadding(8, 16, 8, 16)
                 layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -260,7 +278,7 @@ class EmojiPanelView(context: Context, private val prefs: Prefs) : LinearLayout(
             val star = ImageView(parent.context).apply {
                 setImageResource(R.drawable.ic_star)
                 setColorFilter(Color.parseColor("#FFC107"))
-                layoutParams = FrameLayout.LayoutParams(20, 20, Gravity.TOP or Gravity.END)
+                layoutParams = FrameLayout.LayoutParams(28, 28, Gravity.TOP or Gravity.END)
                 visibility = View.GONE
             }
             frame.addView(tv)

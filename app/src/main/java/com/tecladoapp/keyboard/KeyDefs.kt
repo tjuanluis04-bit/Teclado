@@ -42,7 +42,7 @@ object KeyDefs {
     val symbolsPage1Row3 = "*\"':;!?".map { Key(it.code, it.toString()) }
 
     // ---------- Página 2 de símbolos ----------
-    val symbolsPage2Row1 = "~`|·√π÷×¶∆".map { Key(it.code, it.toString()) }
+    val symbolsPage2Row1 = "~`|•√π÷×¶∆".map { Key(it.code, it.toString()) }
     val symbolsPage2Row2 = "£¢€¥^°={}".map { Key(it.code, it.toString()) }
     val symbolsPage2Row3 = "\\©®™%[]".map { Key(it.code, it.toString()) }
 }

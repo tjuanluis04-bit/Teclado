@@ -2,8 +2,6 @@ package com.tecladoapp.keyboard
 
 import android.content.Context
 import android.graphics.Color
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.*
@@ -11,7 +9,12 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
-class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLayout(context) {
+class ClipboardPanelView(context: Context, private val prefs: Prefs, private val inlineProvider: InlineKeyboardProvider) : LinearLayout(context) {
+
+    private var searchAttached = false
+    private fun releaseSearchKeyboard() {
+        if (searchAttached) { inlineProvider.detachInlineKeyboard(); searchAttached = false }
+    }
 
     interface Listener {
         fun onPaste(text: String)
@@ -43,14 +46,14 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
             setPadding(16, 12, 16, 4)
         }
         val title = TextView(context).apply {
-            text = "Portapapeles"; textSize = 15f
+            text = "Portapapeles"; textSize = 18f
             setTextColor(textColor)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         val closeBtn = ImageView(context).apply {
             setImageResource(R.drawable.ic_close)
             setColorFilter(Color.parseColor("#CCCCCC"))
-            layoutParams = LinearLayout.LayoutParams(48, 48)
+            layoutParams = LinearLayout.LayoutParams(72, 72)
             setOnClickListener { listener?.onClose() }
         }
         topBar.addView(title)
@@ -59,13 +62,13 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
 
         val tabBar = LinearLayout(context).apply { orientation = HORIZONTAL }
         tabRecientes.apply {
-            text = "Recientes"; gravity = Gravity.CENTER; setPadding(0, 16, 0, 16)
+            text = "Recientes"; gravity = Gravity.CENTER; setPadding(0, 24, 0, 24)
             setTextColor(textColor)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setOnClickListener { currentTab = Tab.RECIENTES; openCategory = null; render() }
         }
         tabCategorias.apply {
-            text = "Categorías"; gravity = Gravity.CENTER; setPadding(0, 16, 0, 16)
+            text = "Categorías"; gravity = Gravity.CENTER; setPadding(0, 24, 0, 24)
             setTextColor(textColor)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setOnClickListener { currentTab = Tab.CATEGORIAS; openCategory = null; render() }
@@ -81,6 +84,7 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
     }
 
     private fun render() {
+        releaseSearchKeyboard()
         tabRecientes.setBackgroundColor(if (currentTab == Tab.RECIENTES) activeTabColor else Color.TRANSPARENT)
         tabCategorias.setBackgroundColor(if (currentTab == Tab.CATEGORIAS) activeTabColor else Color.TRANSPARENT)
         contentContainer.removeAllViews()
@@ -116,7 +120,15 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
         val list = ListView(context)
         val names = categories.map { it.name }.toMutableList()
         names.add("+ Nueva categoría")
-        val listAdapter = ArrayAdapter(context, android.R.layout.simple_list_item_1, names)
+        val listAdapter = object : ArrayAdapter<String>(context, android.R.layout.simple_list_item_1, names) {
+            override fun getView(position: Int, convertView: android.view.View?, parent: ViewGroup): android.view.View {
+                val v = super.getView(position, convertView, parent) as TextView
+                v.setTextColor(Color.WHITE)
+                v.textSize = 19f
+                v.setPadding(32, 28, 32, 28)
+                return v
+            }
+        }
         list.adapter = listAdapter
         list.setOnItemClickListener { _, _, pos, _ ->
             if (pos == categories.size) {
@@ -135,26 +147,25 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
     }
 
     private fun promptNewCategoryName(onCreated: (String) -> Unit) {
-        val input = EditText(context).apply {
-            setTextColor(textColor)
-            setHintTextColor(hintColor)
-            hint = "Nombre de la categoría"
-        }
+        releaseSearchKeyboard()
+        val field = InlineTextField(context, "Nombre de la categoría")
         val popup = PopupContainer(context)
-        val container = LinearLayout(context).apply {
-            orientation = VERTICAL
-            setPadding(24, 24, 24, 24)
-        }
-        container.addView(input)
+        val container = LinearLayout(context).apply { orientation = VERTICAL; setPadding(24, 24, 24, 24) }
+        container.addView(field)
+        container.addView(field.keyboardSlot)
         val btn = Button(context).apply {
             text = "Crear"
+            textSize = 18f
             setOnClickListener {
-                val name = input.text.toString().trim()
-                if (name.isNotEmpty()) { onCreated(name); popup.dismiss() }
+                val name = field.text().trim()
+                if (name.isNotEmpty()) { popup.dismiss(); onCreated(name) }
             }
         }
-        container.addView(btn)
-        popup.show(container, "Nueva categoría", this)
+        container.addView(btn, 0)
+        field.onEnter = { btn.performClick() }
+        popup.show(container, "Nueva categoría", this, onDismiss = { inlineProvider.detachInlineKeyboard() })
+        field.setActive(true)
+        inlineProvider.attachInlineKeyboard(field.keyboardSlot, field, extraHeightPx = 0)
     }
 
     // ---------- Pestaña Categorías: lista ----------
@@ -166,20 +177,28 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
             gravity = Gravity.CENTER_VERTICAL
             setPadding(16, 8, 16, 8)
         }
-        val lupa = ImageView(context).apply {
-            setImageResource(R.drawable.ic_search)
-            setColorFilter(hintColor)
-            layoutParams = LinearLayout.LayoutParams(44, 44).apply { marginEnd = 12 }
+        val search = InlineTextField(context, "Buscar categoría…")
+        val doneBtn = TextView(context).apply {
+            text = "Listo"; textSize = 16f
+            setTextColor(Color.parseColor("#6C8CFF"))
+            setPadding(24, 12, 24, 12)
+            visibility = android.view.View.GONE
+            setOnClickListener { releaseSearchKeyboard(); search.setActive(false); visibility = android.view.View.GONE }
         }
-        val search = EditText(context).apply {
-            hint = "Buscar categoría…"
-            setTextColor(textColor)
-            setHintTextColor(hintColor)
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        search.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        search.onTap = {
+            if (!searchAttached) {
+                searchAttached = true
+                search.setActive(true)
+                doneBtn.visibility = android.view.View.VISIBLE
+                inlineProvider.attachInlineKeyboard(search.keyboardSlot, search, extraHeightPx = (resources.displayMetrics.density * 250f).toInt())
+            }
         }
-        searchBar.addView(lupa)
+        search.onEnter = { doneBtn.performClick() }
         searchBar.addView(search)
+        searchBar.addView(doneBtn)
         root.addView(searchBar)
+        root.addView(search.keyboardSlot)
 
         val listContainer = LinearLayout(context).apply { orientation = VERTICAL }
         val scroller = ScrollView(context).apply {
@@ -194,7 +213,7 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
             cats.forEach { cat ->
                 val row = TextView(context).apply {
                     text = "  ${cat.name}"
-                    textSize = 15f
+                    textSize = 18f
                     setTextColor(textColor)
                     setPadding(24, 28, 24, 28)
                     setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_folder, 0, 0, 0)
@@ -206,22 +225,18 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
             }
             val addRow = TextView(context).apply {
                 text = "  Crear categoría"
-                textSize = 15f
+                textSize = 18f
                 setPadding(24, 28, 24, 28)
                 setTextColor(Color.parseColor("#6C8CFF"))
                 setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_add, 0, 0, 0)
                 compoundDrawablePadding = 20
                 compoundDrawableTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#6C8CFF"))
-                setOnClickListener { promptNewCategoryName { render() } }
+                setOnClickListener { promptNewCategoryName { name -> prefs.addCategory(name); render() } }
             }
             listContainer.addView(addRow)
         }
         populate("")
-        search.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) { populate(s?.toString() ?: "") }
-            override fun afterTextChanged(s: Editable?) {}
-        })
+        search.onTextChanged = { populate(it) }
 
         return root
     }
@@ -238,11 +253,11 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
         val backIcon = ImageView(context).apply {
             setImageResource(R.drawable.ic_back)
             setColorFilter(Color.parseColor("#CCCCCC"))
-            layoutParams = LinearLayout.LayoutParams(44, 44).apply { marginEnd = 12 }
+            layoutParams = LinearLayout.LayoutParams(64, 64).apply { marginEnd = 12 }
             setOnClickListener { openCategory = null; render() }
         }
         val back = TextView(context).apply {
-            text = category.name; textSize = 15f
+            text = category.name; textSize = 18f
             setTextColor(textColor)
             setOnClickListener { openCategory = null; render() }
         }
@@ -288,27 +303,25 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
     }
 
     private fun promptEditText(item: ClipItem) {
-        val input = EditText(context).apply {
-            setText(item.text)
-            setTextColor(textColor)
-            setHintTextColor(hintColor)
-        }
+        val field = InlineTextField(context, "Texto")
+        field.setTextValue(item.text)
         val popup = PopupContainer(context)
-        val container = LinearLayout(context).apply {
-            orientation = VERTICAL
-            setPadding(24, 24, 24, 24)
-        }
-        container.addView(input)
+        val container = LinearLayout(context).apply { orientation = VERTICAL; setPadding(24, 24, 24, 24) }
+        container.addView(field)
+        container.addView(field.keyboardSlot)
         val btn = Button(context).apply {
             text = "Guardar"
+            textSize = 18f
             setOnClickListener {
-                prefs.updateClipText(item.id, input.text.toString())
+                prefs.updateClipText(item.id, field.text())
                 popup.dismiss()
                 render()
             }
         }
-        container.addView(btn)
-        popup.show(container, "Editar", this)
+        container.addView(btn, 0)
+        popup.show(container, "Editar", this, onDismiss = { inlineProvider.detachInlineKeyboard() })
+        field.setActive(true)
+        inlineProvider.attachInlineKeyboard(field.keyboardSlot, field, extraHeightPx = 0)
     }
 
     // ---------- Adapter compartido ----------
@@ -328,7 +341,7 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
                 orientation = VERTICAL
                 setPadding(20, 20, 20, 20)
             }
-            val text = TextView(context).apply { textSize = 14f; maxLines = 3; setTextColor(textColor) }
+            val text = TextView(context).apply { textSize = 17f; maxLines = 3; setTextColor(textColor) }
             val actions = LinearLayout(context).apply {
                 orientation = HORIZONTAL
                 visibility = ViewGroup.GONE
@@ -350,7 +363,7 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
                 val img = ImageView(context).apply {
                     setImageResource(if (showEditInsteadOfCategorize) R.drawable.ic_edit else R.drawable.ic_tag)
                     setColorFilter(Color.parseColor("#6C8CFF"))
-                    layoutParams = LinearLayout.LayoutParams(36, 36).apply { marginEnd = 8 }
+                    layoutParams = LinearLayout.LayoutParams(54, 54).apply { marginEnd = 8 }
                 }
                 val label = TextView(context).apply {
                     text = if (showEditInsteadOfCategorize) "Editar" else "Categorizar"
@@ -370,7 +383,7 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs) : LinearLay
                 val img = ImageView(context).apply {
                     setImageResource(R.drawable.ic_delete)
                     setColorFilter(Color.parseColor("#FF6B6B"))
-                    layoutParams = LinearLayout.LayoutParams(36, 36).apply { marginEnd = 8 }
+                    layoutParams = LinearLayout.LayoutParams(54, 54).apply { marginEnd = 8 }
                 }
                 val label = TextView(context).apply {
                     text = "Borrar"
