@@ -123,7 +123,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
         if (!showSymbols) {
             addRow(rowH, KeyDefs.numberRow)
             addRow(rowH, KeyDefs.lettersRow1())
-            addRow(rowH, KeyDefs.lettersRow2(), sidePaddingWeight = 0.5f)
+            addRow(rowH, KeyDefs.lettersRow2())
             val row3 = mutableListOf<Key>()
             row3.add(shiftKey())
             row3.addAll(KeyDefs.lettersRow3())
@@ -153,7 +153,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
             Key(CODE_SYMBOLS, if (showSymbols) "ABC" else "?123", weight = 1.5f, isFunctionKey = true),
             Key(','.code, ",", weight = 0.9f),
             Key(CODE_SPACE, "", weight = 3.4f, isFunctionKey = true),
-            Key('@'.code, "@", weight = 0.9f),
+            if (showSymbols && !symbolsSecondPage) Key('/'.code, "/", weight = 0.9f) else Key('@'.code, "@", weight = 0.9f),
             Key('.'.code, ".", weight = 0.9f),
             Key(CODE_ENTER, "", weight = 1.6f, isFunctionKey = true, iconRes = R.drawable.ic_enter)
         )
@@ -216,7 +216,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
 
     /** Separación como la imagen de referencia: poco espacio horizontal, más vertical. */
     private fun applyMargins(view: View, weight: Float, height: Int) {
-        val mh = px(3f)
+        val mh = px(2f)
         val mv = px(5f)
         view.layoutParams = LinearLayout.LayoutParams(0, height, weight).apply { setMargins(mh, mv, mh, mv) }
     }
@@ -407,6 +407,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
         var baseY = 0f
         var lastX = 0f
         var lastY = 0f
+        var upperAtDown = false
 
         view.setOnTouchListener { v, event ->
             when (event.actionMasked) {
@@ -415,6 +416,8 @@ class KeyboardView(context: Context) : LinearLayout(context) {
                     longPressTriggered = false
                     v.isPressed = true
                     haptic(v)
+                    upperAtDown = shiftOn || capsLock
+                    handleTap(key) // se escribe al instante; si luego eliges un símbolo, lo reemplaza
                     lastX = event.rawX; lastY = event.rawY
                     val r = Runnable {
                         longPressTriggered = true
@@ -424,7 +427,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
                         highlightPopupIndex(selectedPopupIndex)
                     }
                     pendingLongPress = r
-                    uiHandler.postDelayed(r, 320)
+                    uiHandler.postDelayed(r, 380)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -454,9 +457,11 @@ class KeyboardView(context: Context) : LinearLayout(context) {
                     if (longPressTriggered) {
                         val ch = activePopupChars.getOrNull(selectedPopupIndex)
                         dismissAccentPopup()
-                        if (ch != null) commitChar(ch)
-                    } else {
-                        handleTap(key)
+                        if (ch != null) {
+                            listener?.onBackspace() // quita la letra escrita al tocar
+                            val c = if (upperAtDown && ch.isLetter()) ch.uppercaseChar() else ch
+                            listener?.onKeyChar(c)
+                        }
                     }
                     true
                 }

@@ -200,43 +200,75 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
         root.addView(searchBar)
         root.addView(search.keyboardSlot)
 
-        val listContainer = LinearLayout(context).apply { orientation = VERTICAL }
-        val scroller = ScrollView(context).apply {
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
-        }
-        scroller.addView(listContainer)
-        root.addView(scroller)
+        // Lista de categorías: mantener presionada una y arrastrar arriba/abajo para reordenar
+        var filterText = ""
+        val shown = mutableListOf<ClipCategory>()
+        val catRecycler = RecyclerView(context)
+        catRecycler.layoutManager = LinearLayoutManager(context)
+        catRecycler.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
 
-        fun populate(filter: String) {
-            listContainer.removeAllViews()
-            val cats = prefs.getCategories().filter { it.name.contains(filter, ignoreCase = true) }
-            cats.forEach { cat ->
-                val row = TextView(context).apply {
-                    text = "  ${cat.name}"
-                    textSize = 18f
-                    setTextColor(textColor)
-                    setPadding(24, 28, 24, 28)
-                    setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_folder, 0, 0, 0)
-                    compoundDrawablePadding = 20
-                    compoundDrawableTintList = android.content.res.ColorStateList.valueOf(hintColor)
-                    setOnClickListener { openCategory = cat; render() }
+        val catAdapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun getItemCount() = shown.size + 1 // +1: fila "Crear categoría"
+            override fun getItemViewType(position: Int) = if (position < shown.size) 0 else 1
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val tv = TextView(context).apply {
+                    textSize = 19f
+                    setPadding(28, 32, 28, 32)
+                    compoundDrawablePadding = 24
+                    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 }
-                listContainer.addView(row)
+                return object : RecyclerView.ViewHolder(tv) {}
             }
-            val addRow = TextView(context).apply {
-                text = "  Crear categoría"
-                textSize = 18f
-                setPadding(24, 28, 24, 28)
-                setTextColor(Color.parseColor("#6C8CFF"))
-                setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_add, 0, 0, 0)
-                compoundDrawablePadding = 20
-                compoundDrawableTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#6C8CFF"))
-                setOnClickListener { promptNewCategoryName { name -> prefs.addCategory(name); render() } }
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+                val tv = holder.itemView as TextView
+                if (position < shown.size) {
+                    val cat = shown[position]
+                    tv.text = cat.name
+                    tv.setTextColor(textColor)
+                    tv.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_folder, 0, 0, 0)
+                    tv.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(hintColor)
+                    tv.setOnClickListener { openCategory = cat; render() }
+                } else {
+                    tv.text = "Crear categoría"
+                    tv.setTextColor(Color.parseColor("#6C8CFF"))
+                    tv.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_add, 0, 0, 0)
+                    tv.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#6C8CFF"))
+                    tv.setOnClickListener { promptNewCategoryName { name -> prefs.addCategory(name); render() } }
+                }
             }
-            listContainer.addView(addRow)
         }
-        populate("")
-        search.onTextChanged = { populate(it) }
+        catRecycler.adapter = catAdapter
+
+        fun reloadCats() {
+            shown.clear()
+            shown.addAll(prefs.getCategories().filter { it.name.contains(filterText, ignoreCase = true) })
+            catAdapter.notifyDataSetChanged()
+        }
+        reloadCats()
+
+        val catTouch = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
+            override fun isLongPressDragEnabled() = filterText.isEmpty()
+            override fun getMovementFlags(rv: RecyclerView, vh: RecyclerView.ViewHolder): Int =
+                if (vh.bindingAdapterPosition >= shown.size) 0 else super.getMovementFlags(rv, vh)
+            override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                val from = vh.bindingAdapterPosition
+                val to = target.bindingAdapterPosition
+                if (from < 0 || to < 0 || from >= shown.size || to >= shown.size) return false
+                val item = shown.removeAt(from)
+                shown.add(to, item)
+                catAdapter.notifyItemMoved(from, to)
+                return true
+            }
+            override fun clearView(rv: RecyclerView, vh: RecyclerView.ViewHolder) {
+                super.clearView(rv, vh)
+                if (filterText.isEmpty()) prefs.saveCategories(shown.toList())
+            }
+            override fun onSwiped(vh: RecyclerView.ViewHolder, dir: Int) {}
+        })
+        catTouch.attachToRecyclerView(catRecycler)
+        root.addView(catRecycler)
+
+        search.onTextChanged = { filterText = it; reloadCats() }
 
         return root
     }
@@ -270,6 +302,7 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
         recycler.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
         root.addView(recycler)
 
+        var touchHelperRef: ItemTouchHelper? = null
         val items = prefs.getClipsForCategory(category.id).toMutableList()
         val adapter = ClipAdapter(
             items = items,
@@ -277,7 +310,10 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
             onCategorize = null,
             onDelete = { item -> prefs.deleteClip(item.id); render() },
             onEdit = { item -> promptEditText(item) },
-            showEditInsteadOfCategorize = true
+            showEditInsteadOfCategorize = true,
+            alwaysShowActions = true,
+            onRemoveFromCategory = { item -> prefs.setClipCategory(item.id, null); render() },
+            onStartDrag = { vh -> touchHelperRef?.startDrag(vh) }
         )
         recycler.adapter = adapter
 
@@ -295,8 +331,10 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
                 prefs.reorderClipsInCategory(category.id, items.map { it.id })
                 return true
             }
+            override fun isLongPressDragEnabled() = false
             override fun onSwiped(vh: RecyclerView.ViewHolder, dir: Int) {}
         })
+        touchHelperRef = touchHelper
         touchHelper.attachToRecyclerView(recycler)
 
         return root
@@ -331,7 +369,10 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
         val onCategorize: ((ClipItem) -> Unit)?,
         val onDelete: (ClipItem) -> Unit,
         val onEdit: ((ClipItem) -> Unit)?,
-        val showEditInsteadOfCategorize: Boolean
+        val showEditInsteadOfCategorize: Boolean,
+        val alwaysShowActions: Boolean = false,
+        val onRemoveFromCategory: ((ClipItem) -> Unit)? = null,
+        val onStartDrag: ((RecyclerView.ViewHolder) -> Unit)? = null
     ) : RecyclerView.Adapter<ClipAdapter.VH>() {
 
         inner class VH(val row: LinearLayout, val text: TextView, val actions: LinearLayout) : RecyclerView.ViewHolder(row)
@@ -373,7 +414,7 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
                 addView(label)
                 setOnClickListener {
                     if (showEditInsteadOfCategorize) onEdit?.invoke(item) else onCategorize?.invoke(item)
-                    holder.actions.visibility = ViewGroup.GONE
+                    if (!alwaysShowActions) holder.actions.visibility = ViewGroup.GONE
                 }
             }
             val deleteIcon = LinearLayout(context).apply {
@@ -394,14 +435,42 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
                 setOnClickListener { onDelete(item) }
             }
             holder.actions.addView(secondIcon)
+            if (onRemoveFromCategory != null) {
+                val remove = TextView(context).apply {
+                    text = "Quitar"
+                    textSize = 16f
+                    setTextColor(Color.parseColor("#FFB74D"))
+                    setPadding(0, 12, 32, 0)
+                    setOnClickListener { onRemoveFromCategory.invoke(item) }
+                }
+                holder.actions.addView(remove)
+            }
             holder.actions.addView(deleteIcon)
+            if (onStartDrag != null) {
+                val handle = TextView(context).apply {
+                    text = "  ≡ Mover"
+                    textSize = 17f
+                    setTextColor(Color.parseColor("#CCCCCC"))
+                    setPadding(32, 12, 0, 0)
+                    setOnTouchListener { _, ev ->
+                        if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN) onStartDrag.invoke(holder)
+                        false
+                    }
+                }
+                holder.actions.addView(handle)
+            }
+            if (alwaysShowActions) holder.actions.visibility = ViewGroup.VISIBLE
 
             holder.row.setOnClickListener {
                 if (holder.actions.visibility == ViewGroup.VISIBLE) onTap(item) else onTap(item)
             }
-            holder.row.setOnLongClickListener {
-                holder.actions.visibility = if (holder.actions.visibility == ViewGroup.VISIBLE) ViewGroup.GONE else ViewGroup.VISIBLE
-                true
+            if (!alwaysShowActions) {
+                holder.row.setOnLongClickListener {
+                    holder.actions.visibility = if (holder.actions.visibility == ViewGroup.VISIBLE) ViewGroup.GONE else ViewGroup.VISIBLE
+                    true
+                }
+            } else {
+                holder.row.setOnLongClickListener(null)
             }
         }
 

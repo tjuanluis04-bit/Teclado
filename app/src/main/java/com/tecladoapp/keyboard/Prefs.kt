@@ -178,6 +178,11 @@ class Prefs(context: Context) {
         saveRecentClips(clips)
     }
 
+    /** Último texto copiado que aún no se ha ofrecido/pegado desde la barra de sugerencias. */
+    var pendingClip: String?
+        get() = sp.getString("pending_clip", null)
+        set(v) { if (v == null) sp.edit().remove("pending_clip").apply() else sp.edit().putString("pending_clip", v).apply() }
+
     // ---------- Términos / definiciones / analogías ----------
     fun getTerms(): MutableList<TermEntry> {
         val arr = JSONArray(sp.getString("terms", "[]") ?: "[]")

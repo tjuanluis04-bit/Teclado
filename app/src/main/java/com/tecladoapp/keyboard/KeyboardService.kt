@@ -39,6 +39,13 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
     private var activeStyle: TextStyle? = null
     private var userFreq: MutableMap<String, Int> = mutableMapOf()
     private var learnCount = 0
+    private var hasSelection = false
+    private var builtThemeId = ""
+
+    override fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesStart: Int, candidatesEnd: Int) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        hasSelection = newSelStart != newSelEnd
+    }
 
     // ---- historial para deshacer / rehacer ----
     private class Edit(var inserted: String, var deletedBefore: String, var deletedAfter: String, var time: Long)
@@ -50,7 +57,7 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         val clip = clipboardManager?.primaryClip
         if (clip != null && clip.itemCount > 0) {
             val text = clip.getItemAt(0).coerceToText(this)?.toString()
-            if (!text.isNullOrBlank()) prefs.addNewClip(text)
+            if (!text.isNullOrBlank()) { prefs.addNewClip(text); prefs.pendingClip = text; uiHandler.post { updateSuggestions() } }
         }
     }
 
@@ -98,6 +105,7 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
     private fun buildInputView(): View {
         val theme = ThemeCatalog.theme(prefs.themeId)
         val font = ThemeCatalog.font(prefs.fontId)
+        builtThemeId = theme.id
 
         rootLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -169,6 +177,7 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         bar.addView(iconButton(R.drawable.ic_undo) { undo() })
         bar.addView(iconButton(R.drawable.ic_redo) { redo() })
         bar.addView(iconButton(R.drawable.ic_book) { showTermsPanel() })
+        bar.addView(iconButton(R.drawable.ic_translate) { showTranslatePanel() })
         bar.addView(iconButton(R.drawable.ic_calculator) { showCalculatorPanel() })
         val sb = iconButton(R.drawable.ic_textstyle) { showTextStylePanel() }
         styleButton = sb
@@ -292,7 +301,7 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
     private fun showClipboardPanel() {
         val panel = ClipboardPanelView(this, prefs, this)
         panel.listener = object : ClipboardPanelView.Listener {
-            override fun onPaste(text: String) { commitRecorded(text) }
+            override fun onPaste(text: String) { if (text == prefs.pendingClip) prefs.pendingClip = null; commitRecorded(text) }
             override fun onClose() { showKeyboardView() }
         }
         showPanel(panel)
@@ -310,6 +319,16 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
     private fun showCalculatorPanel() {
         val panel = CalculatorPanelView(this)
         panel.listener = object : CalculatorPanelView.Listener {
+            override fun onInsert(text: String) { commitRecorded(text) }
+            override fun onClose() { showKeyboardView() }
+        }
+        showPanel(panel)
+    }
+
+    private fun showTranslatePanel() {
+        val selected = if (hasSelection) currentInputConnection?.getSelectedText(0)?.toString().orEmpty() else ""
+        val panel = TranslatePanelView(this, this, selected)
+        panel.listener = object : TranslatePanelView.Listener {
             override fun onInsert(text: String) { commitRecorded(text) }
             override fun onClose() { showKeyboardView() }
         }
@@ -368,6 +387,13 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         super.onStartInputView(info, restarting)
         try {
             if (!::keyboardView.isInitialized) return
+            if (builtThemeId != prefs.themeId) {
+                // el tema cambió: se reconstruye todo (barra, fondo, iconos) para no arrastrar colores viejos
+                detachInlineKeyboard()
+                (keyboardView.parent as? ViewGroup)?.removeView(keyboardView)
+                setInputView(buildInputView())
+                return
+            }
             val theme = ThemeCatalog.theme(prefs.themeId)
             val font = ThemeCatalog.font(prefs.fontId)
             keyboardView.theme = theme
@@ -412,7 +438,7 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
 
     private fun commitRecorded(text: String) {
         val ic = currentInputConnection ?: return
-        val sel = ic.getSelectedText(0)?.toString().orEmpty()
+        val sel = if (hasSelection) ic.getSelectedText(0)?.toString().orEmpty() else ""
         ic.commitText(text, 1)
         record(text, sel, "")
         scheduleRefresh()
@@ -455,11 +481,13 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
     /** Borra un carácter completo (emoji, letra con acento, carácter estilizado) hacia atrás. */
     private fun deleteOneBack() {
         val ic = currentInputConnection ?: return
-        val sel = ic.getSelectedText(0)?.toString()
-        if (!sel.isNullOrEmpty()) {
-            ic.commitText("", 1)
-            record("", sel, "")
-            return
+        if (hasSelection) {
+            val sel = ic.getSelectedText(0)?.toString()
+            if (!sel.isNullOrEmpty()) {
+                ic.commitText("", 1)
+                record("", sel, "")
+                return
+            }
         }
         val before = ic.getTextBeforeCursor(12, 0)?.toString().orEmpty()
         if (before.isEmpty()) {
@@ -478,7 +506,8 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         } else if (last.code in 0x300..0x36F) {
             len = 2
         }
-        deleteRange(len, 0)
+        ic.deleteSurroundingText(len, 0)
+        record("", before.takeLast(len), "")
     }
 
     // ---------- KeyboardListener ----------
@@ -514,9 +543,13 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
 
     override fun onSpace() {
         inlineHost?.let { it.onInlineChar(' '); return }
-        commitRecorded(" ")
-        learnLastWord()
-        evaluateAutoCap()
+        val ic = currentInputConnection ?: return
+        ic.commitText(" ", 1)
+        record(" ", "", "")
+        val before = ic.getTextBeforeCursor(40, 0)?.toString().orEmpty()
+        learnLastWord(before)
+        evaluateAutoCap(before)
+        scheduleRefresh()
     }
 
     override fun onShiftToggled(active: Boolean) {}
@@ -602,11 +635,10 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         }
     }
 
-    private fun evaluateAutoCap() {
+    private fun evaluateAutoCap(known: String? = null) {
         if (!::keyboardView.isInitialized || inlineHost != null) return
         if (!autoCapAllowed()) { keyboardView.setAutoShift(false); return }
-        val ic = currentInputConnection ?: return
-        val before = ic.getTextBeforeCursor(6, 0)?.toString().orEmpty()
+        val before = known?.takeLast(6) ?: (currentInputConnection ?: return).getTextBeforeCursor(6, 0)?.toString().orEmpty()
         val need = before.isEmpty() ||
             before.last() == '\n' ||
             before.last() == '¿' || before.last() == '¡' ||
@@ -619,12 +651,11 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
 
     private fun scheduleRefresh() {
         uiHandler.removeCallbacks(refreshRunnable)
-        uiHandler.postDelayed(refreshRunnable, 60)
+        uiHandler.postDelayed(refreshRunnable, 110)
     }
 
-    private fun learnLastWord() {
-        val ic = currentInputConnection ?: return
-        val before = ic.getTextBeforeCursor(40, 0)?.toString().orEmpty().trimEnd()
+    private fun learnLastWord(text: String? = null) {
+        val before = (text ?: currentInputConnection?.getTextBeforeCursor(40, 0)?.toString().orEmpty()).trimEnd()
         val word = before.takeLastWhile { it.isLetter() }.lowercase()
         if (word.length >= 3) {
             userFreq[word] = (userFreq[word] ?: 0) + 1
@@ -655,7 +686,12 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
             else -> WordSuggester.suggestionsFor(currentWord, userFreq)
         }.map { matchCase(currentWord, it) }
         suggestionBar.visibility = View.VISIBLE
-        suggestionBar.setSuggestions(suggestions, theme)
+        val clip = if (currentWord.isEmpty()) prefs.pendingClip else null
+        suggestionBar.setSuggestions(suggestions, theme, clip) {
+            prefs.pendingClip = null
+            commitRecorded(clip.orEmpty())
+            updateSuggestions()
+        }
     }
 
     private fun replaceCurrentWord(newWord: String) {
