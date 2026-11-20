@@ -24,7 +24,20 @@ object ThemeCatalog {
         KeyboardTheme("hielo", "Hielo", Color.parseColor("#FFFFFF"), Color.parseColor("#12384F"), Color.parseColor("#CFE8F5"), Color.parseColor("#4AA3D8")),
         KeyboardTheme("carbon", "Carbón Rojo", Color.parseColor("#2C2C2C"), Color.parseColor("#FFFFFF"), Color.parseColor("#141414"), Color.parseColor("#E53935")),
         KeyboardTheme("arena", "Arena", Color.parseColor("#F7EBD3"), Color.parseColor("#5A4524"), Color.parseColor("#D9C39A"), Color.parseColor("#C68B3E")),
-        KeyboardTheme("cyberpunk", "Cyberpunk", Color.parseColor("#1B1035"), Color.parseColor("#F9F871"), Color.parseColor("#0A0618"), Color.parseColor("#00E5FF"))
+        KeyboardTheme("cyberpunk", "Cyberpunk", Color.parseColor("#1B1035"), Color.parseColor("#F9F871"), Color.parseColor("#0A0618"), Color.parseColor("#00E5FF")),
+        KeyboardTheme("sakura", "Sakura", Color.parseColor("#FFF5F8"), Color.parseColor("#7A2E4A"), Color.parseColor("#FFD6E4"), Color.parseColor("#F06292")),
+        KeyboardTheme("volcan", "Volcán", Color.parseColor("#3A1F1A"), Color.parseColor("#FFE0B2"), Color.parseColor("#1C0D0A"), Color.parseColor("#FF7043")),
+        KeyboardTheme("esmeralda", "Esmeralda", Color.parseColor("#0F5132"), Color.parseColor("#D1F7E3"), Color.parseColor("#062B1B"), Color.parseColor("#1DE9B6")),
+        KeyboardTheme("limon", "Limón", Color.parseColor("#FFFDE7"), Color.parseColor("#4D4400"), Color.parseColor("#F4EE9A"), Color.parseColor("#C0CA33")),
+        KeyboardTheme("cielo", "Cielo Claro", Color.parseColor("#FFFFFF"), Color.parseColor("#0D3B66"), Color.parseColor("#BFE3FF"), Color.parseColor("#2196F3")),
+        KeyboardTheme("uva", "Uva", Color.parseColor("#4A2C6B"), Color.parseColor("#F3E5FF"), Color.parseColor("#22103A"), Color.parseColor("#AB47BC")),
+        KeyboardTheme("cafe", "Café", Color.parseColor("#6F4E37"), Color.parseColor("#FFF3E0"), Color.parseColor("#3B2A1E"), Color.parseColor("#D7A86E")),
+        KeyboardTheme("grafito", "Grafito Azul", Color.parseColor("#37474F"), Color.parseColor("#ECEFF1"), Color.parseColor("#1C262B"), Color.parseColor("#40C4FF")),
+        KeyboardTheme("coral", "Coral", Color.parseColor("#FFFFFF"), Color.parseColor("#5A1F1A"), Color.parseColor("#FFCFC2"), Color.parseColor("#FF5252")),
+        KeyboardTheme("blanco_puro", "Blanco Puro", Color.parseColor("#FFFFFF"), Color.parseColor("#212121"), Color.parseColor("#F2F2F2"), Color.parseColor("#616161")),
+        KeyboardTheme("negro_puro", "Negro Puro (AMOLED)", Color.parseColor("#1A1A1A"), Color.parseColor("#FFFFFF"), Color.parseColor("#000000"), Color.parseColor("#BB86FC")),
+        KeyboardTheme("aurora", "Aurora", Color.parseColor("#1B3A4B"), Color.parseColor("#C8FFF4"), Color.parseColor("#0B1D26"), Color.parseColor("#7CFFCB")),
+        KeyboardTheme("durazno", "Durazno", Color.parseColor("#FFF1E6"), Color.parseColor("#6B3E26"), Color.parseColor("#FFCBA4"), Color.parseColor("#FF8A65"))
     )
 
     val fonts = listOf(

@@ -56,7 +56,9 @@ object AccentMaps {
         '\'' to listOf('‚', '‘', '’', '‹', '›'),
         '!' to listOf('¡'),
         '?' to listOf('¿'),
-        '.' to listOf('…')
+        '.' to listOf('…'),
+        '<' to listOf('‹', '≤', '«'),
+        '>' to listOf('›', '≥', '»')
     )
 
     fun forKey(code: Int, isFunctionKey: Boolean): List<Char> {

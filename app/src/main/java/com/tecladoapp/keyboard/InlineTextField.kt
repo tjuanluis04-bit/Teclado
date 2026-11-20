@@ -43,6 +43,8 @@ class InlineTextField(context: Context, private val hintText: String) : LinearLa
 
     fun text(): String = sb.toString()
     fun setTextValue(t: String) { sb.setLength(0); sb.append(t); refresh() }
+    fun appendText(t: String) { sb.append(t); refresh(); onTextChanged?.invoke(sb.toString()) }
+    fun clear() { sb.setLength(0); refresh(); onTextChanged?.invoke("") }
     fun setActive(a: Boolean) { active = a; refresh() }
 
     private fun refresh() {

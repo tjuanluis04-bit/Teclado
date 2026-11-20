@@ -31,9 +31,13 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("word_suggestions_enabled", true)
         set(v) = sp.edit().putBoolean("word_suggestions_enabled", v).apply()
 
+    var skinTone: Int
+        get() = sp.getInt("skin_tone", 0)
+        set(v) = sp.edit().putInt("skin_tone", v).apply()
+
     // ---------- Portapapeles ----------
     companion object {
-        const val MAX_RECENT_CLIPS = 10
+        const val MAX_RECENT_CLIPS = 20
     }
 
     fun getRecentClips(): MutableList<ClipItem> {
@@ -47,7 +51,8 @@ class Prefs(context: Context) {
                     id = o.getString("id"),
                     text = o.getString("text"),
                     timestamp = o.getLong("ts"),
-                    categoryId = if (o.has("cat") && !o.isNull("cat")) o.getString("cat") else null
+                    categoryId = if (o.has("cat") && !o.isNull("cat")) o.getString("cat") else null,
+                    manual = o.optBoolean("man", false)
                 )
             )
         }
@@ -62,6 +67,7 @@ class Prefs(context: Context) {
             o.put("text", it.text)
             o.put("ts", it.timestamp)
             o.put("cat", it.categoryId)
+            o.put("man", it.manual)
             arr.put(o)
         }
         sp.edit().putString("clips_recent", arr.toString()).apply()
@@ -78,12 +84,20 @@ class Prefs(context: Context) {
         list.add(0, newItem)
 
         // Contamos cuántos "slots" de recientes (sin categorizar) hay
-        val uncategorized = list.filter { it.categoryId == null }
+        val uncategorized = list.filter { it.categoryId == null && !it.manual }
         if (uncategorized.size > MAX_RECENT_CLIPS) {
             // eliminar el más viejo sin categoría
             val oldest = uncategorized.minByOrNull { it.timestamp }
             if (oldest != null) list.remove(oldest)
         }
+        saveRecentClips(list)
+    }
+
+    /** Texto escrito a mano dentro de una categoría: se queda ahí y no aparece en Recientes. */
+    fun addClipToCategory(text: String, categoryId: String) {
+        if (text.isBlank()) return
+        val list = getRecentClips()
+        list.add(ClipItem(UUID.randomUUID().toString(), text, System.currentTimeMillis(), categoryId, manual = true))
         saveRecentClips(list)
     }
 
@@ -105,7 +119,7 @@ class Prefs(context: Context) {
         val list = getRecentClips()
         val idx = list.indexOfFirst { it.id == id }
         if (idx >= 0) {
-            list[idx] = list[idx].copy(categoryId = categoryId)
+            list[idx] = list[idx].copy(categoryId = categoryId, manual = if (categoryId == null) false else list[idx].manual)
             saveRecentClips(list)
         }
     }
@@ -124,7 +138,7 @@ class Prefs(context: Context) {
      *  siguen mostrándose ahí también si siguen entre las últimas 10; si no, solo aparecen
      *  en su categoría). */
     fun getRecentTabItems(): List<ClipItem> {
-        return getRecentClips().sortedByDescending { it.timestamp }.take(MAX_RECENT_CLIPS)
+        return getRecentClips().filter { !it.manual }.sortedByDescending { it.timestamp }.take(MAX_RECENT_CLIPS)
     }
 
     fun getClipsForCategory(categoryId: String): List<ClipItem> {
@@ -174,7 +188,7 @@ class Prefs(context: Context) {
     fun deleteCategory(id: String) {
         saveCategories(getCategories().filterNot { it.id == id })
         // los clips de esa categoría vuelven a quedar sin categoría
-        val clips = getRecentClips().map { if (it.categoryId == id) it.copy(categoryId = null) else it }
+        val clips = getRecentClips().map { if (it.categoryId == id) it.copy(categoryId = null, manual = false) else it }
         saveRecentClips(clips)
     }
 

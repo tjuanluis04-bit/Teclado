@@ -1,0 +1,955 @@
+# español: palabras en inglés usadas por los emojis (una línea por palabra)
+rojo: red heart
+roja: red
+naranja: orange
+anaranjado: orange
+amarillo: yellow
+amarilla: yellow
+verde: green
+azul: blue
+celeste: blue
+morado: purple
+violeta: purple
+purpura: purple
+rosa: pink rose
+rosado: pink
+marron: brown
+cafe: brown coffee
+negro: black
+negra: black
+blanco: white
+blanca: white
+gris: grey
+dorado: gold yellow
+plateado: silver
+color: red blue green
+colores: red blue green
+cara: face
+caritas: face
+carita: face
+rostro: face
+sonriente: smiling grinning smile
+sonrisa: smile smiling grinning
+feliz: smiling grinning joy happy beaming
+contento: smiling happy grinning
+alegre: smiling happy grinning joy
+risa: laughing joy rolling grinning
+reir: laughing joy grinning
+riendo: laughing joy grinning
+carcajada: rolling laughing joy
+gracioso: joy laughing zany
+llorando: crying tear tears loudly sob
+llorar: crying tear tears
+lagrimas: tears tear crying
+lagrima: tear crying
+triste: sad crying disappointed pensive frowning
+tristeza: sad crying disappointed
+enojado: angry enraged pouting
+enojo: angry anger enraged
+enfadado: angry enraged
+furioso: enraged angry
+ira: angry enraged anger
+miedo: fearful scared screaming anxious fear
+asustado: fearful screaming scared anxious
+susto: screaming fearful
+sorprendido: astonished surprised hushed
+sorpresa: astonished surprised
+asombro: astonished
+pensando: thinking
+pensativo: thinking pensive
+pensar: thinking
+duda: thinking confused
+confundido: confused
+confusion: confused
+cansado: tired weary sleepy yawning
+cansancio: tired weary
+sueno: sleeping sleepy zzz
+dormir: sleeping sleepy zzz
+dormido: sleeping zzz
+bostezo: yawning
+enfermo: sick nauseated vomiting thermometer mask
+enferma: sick nauseated
+vomito: vomiting nauseated
+mareado: dizzy woozy
+mareo: dizzy
+estornudo: sneezing
+frio: cold freezing snowflake snowman
+calor: hot sun
+caliente: hot
+guino: winking
+guinar: winking
+beso: kiss kissing
+besos: kiss kissing
+besando: kissing
+amor: love heart hearts
+enamorado: love heart eyes
+enamorada: love heart eyes
+corazon: heart
+corazones: hearts heart
+cursi: love heart
+abrazo: hugging hug
+abrazar: hugging
+mano: hand
+manos: hands hand
+dedo: finger
+dedos: fingers finger
+pulgar: thumb thumbs
+pulgares: thumbs thumb
+aplauso: clapping hands
+aplaudir: clapping
+palmas: clapping palms
+saludo: waving hand salute
+saludar: waving hand
+adios: waving
+hola: waving hand
+rezar: folded hands prayer
+rezando: folded hands
+oracion: prayer folded
+gracias: folded hands
+por favor: folded hands
+fuerza: flexed biceps muscle
+musculo: flexed biceps
+musculos: flexed biceps
+fuerte: flexed biceps strong
+puno: fist
+punos: fist
+apreton: handshake
+trato: handshake
+victoria: victory
+paz: peace victory
+ok: ok
+bien: ok thumbs up
+mal: thumbs down
+arriba: up upwards
+abajo: down downwards
+izquierda: left leftwards
+derecha: right rightwards
+flecha: arrow
+flechas: arrows arrow
+ojo: eye eyes
+ojos: eyes eye
+mirar: eyes
+ver: eyes
+nariz: nose
+boca: mouth
+labios: lip lips
+lengua: tongue
+diente: tooth
+dientes: tooth teeth
+oreja: ear
+oido: ear
+oreja: ear
+cerebro: brain
+hueso: bone
+huesos: bone
+pie: foot
+pies: foot footprints
+pierna: leg
+brazo: arm
+cuerpo: body person
+persona: person
+personas: people person
+gente: people person
+hombre: man
+hombres: men man
+mujer: woman
+mujeres: women woman
+nino: boy child
+nina: girl child
+ninos: children child
+chico: boy
+chica: girl
+bebe: baby
+bebes: baby
+anciano: old older
+abuelo: old man older
+abuela: old woman older
+adulto: adult
+familia: family
+pareja: couple
+parejas: couple
+novios: couple
+boda: wedding
+casamiento: wedding
+novia: bride
+novio: groom
+embarazada: pregnant
+rey: king prince crown
+reina: queen princess crown
+princesa: princess
+principe: prince
+corona: crown
+bruja: mage
+mago: mage
+hada: fairy
+vampiro: vampire
+zombi: zombie
+zombie: zombie
+fantasma: ghost
+alien: alien
+extraterrestre: alien
+robot: robot
+payaso: clown
+demonio: devil imp
+diablo: devil imp
+angel: angel
+calavera: skull
+esqueleto: skull
+muerte: skull
+muerto: skull
+policia: police officer
+doctor: health worker
+medico: health worker doctor
+enfermera: health worker
+cientifico: scientist
+profesor: teacher
+maestro: teacher
+estudiante: student
+cocinero: cook
+chef: cook
+bombero: firefighter
+piloto: pilot
+astronauta: astronaut
+mecanico: mechanic
+agricultor: farmer
+artista: artist
+cantante: singer
+juez: judge
+detective: detective
+ninja: ninja
+superheroe: superhero
+sirena: mermaid
+elfo: elf
+genio: genie
+baile: dancing dancer
+bailar: dancing dancer
+bailando: dancing
+caminar: walking
+caminando: walking
+correr: running
+corriendo: running
+nadar: swimming
+nadando: swimming
+surf: surfing
+bicicleta: bicycle biking
+bici: bicycle
+escalar: climbing
+yoga: lotus
+masaje: massage
+peluqueria: haircut
+corte: haircut
+pelo: hair
+cabello: hair
+calvo: bald
+barba: beard
+rubio: blond
+rizado: curly
+bigote: beard
+gafas: glasses sunglasses
+lentes: glasses sunglasses
+sombrero: hat
+gorra: cap
+casco: helmet
+bufanda: scarf
+guantes: gloves
+abrigo: coat
+camisa: shirt
+camiseta: shirt
+pantalon: jeans
+pantalones: jeans
+vestido: dress
+falda: dress
+zapato: shoe
+zapatos: shoes shoe
+tenis: sneaker tennis
+zapatilla: shoe
+sandalia: sandal
+calcetines: socks
+bolsa: bag
+bolso: handbag purse
+mochila: backpack
+maleta: luggage briefcase
+cartera: purse
+traje: suit
+corbata: necktie
+bikini: bikini
+paraguas: umbrella
+anillo: ring
+diamante: diamond gem
+joya: gem
+lapiz labial: lipstick
+maquillaje: lipstick
+perfume: lotion
+uña: nail
+una: nail
+perro: dog
+perrito: dog
+cachorro: dog
+gato: cat
+gatito: cat
+raton: mouse
+hamster: hamster
+conejo: rabbit bunny
+zorro: fox
+oso: bear
+panda: panda
+koala: koala
+tigre: tiger
+leon: lion
+vaca: cow
+toro: ox
+cerdo: pig
+puerco: pig
+cochino: pig
+rana: frog
+mono: monkey
+gorila: gorilla
+orangutan: orangutan
+pollo: chicken
+gallina: chicken
+gallo: rooster
+pollito: chick
+pajaro: bird
+ave: bird
+pinguino: penguin
+paloma: dove
+aguila: eagle
+pato: duck
+cisne: swan
+buho: owl
+loro: parrot
+pavo: turkey peacock
+flamenco: flamingo
+loro: parrot
+lobo: wolf
+caballo: horse
+unicornio: unicorn
+cebra: zebra
+ciervo: deer
+venado: deer
+jirafa: giraffe
+camello: camel
+elefante: elephant
+rinoceronte: rhinoceros
+hipopotamo: hippopotamus
+canguro: kangaroo
+oveja: sheep ram
+cabra: goat
+burro: donkey
+llama: llama
+ardilla: chipmunk
+erizo: hedgehog
+murcielago: bat
+mapache: raccoon
+nutria: otter
+perezoso: sloth
+zorrillo: skunk
+tejon: badger
+castor: beaver
+bisonte: bison
+mamut: mammoth
+dinosaurio: sauropod rex
+dragon: dragon
+tortuga: turtle
+serpiente: snake
+culebra: snake
+lagarto: lizard
+cocodrilo: crocodile
+ballena: whale
+delfin: dolphin
+pez: fish
+pescado: fish
+pulpo: octopus
+calamar: squid
+tiburon: shark
+cangrejo: crab
+langosta: lobster
+camaron: shrimp
+medusa: jellyfish
+caracol: snail
+mariposa: butterfly
+abeja: honeybee
+hormiga: ant
+cucaracha: cockroach
+mosquito: mosquito
+mosca: fly
+gusano: worm
+arana: spider
+escorpion: scorpion
+insecto: bug beetle
+bicho: bug
+escarabajo: beetle
+planta: plant
+arbol: tree
+palmera: palm
+flor: flower blossom
+flores: flower blossom
+rosa: rose
+tulipan: tulip
+girasol: sunflower
+hoja: leaf
+hojas: leaf leaves
+trebol: clover shamrock
+cactus: cactus
+hongo: mushroom
+seta: mushroom
+bosque: tree evergreen
+montana: mountain
+volcan: volcano
+playa: beach
+desierto: desert
+isla: island
+sol: sun
+luna: moon
+estrella: star
+estrellas: stars star
+cielo: sky
+nube: cloud
+nubes: clouds cloud
+lluvia: rain
+lloviendo: rain
+nieve: snow snowflake
+rayo: lightning
+trueno: lightning
+tormenta: cloud lightning
+tornado: tornado
+niebla: fog
+viento: wind
+arcoiris: rainbow
+arco iris: rainbow
+fuego: fire
+llama: flame fire
+agua: water droplet
+gota: droplet drop
+ola: wave
+oceano: ocean wave
+mar: ocean wave
+tierra: earth globe
+planeta: planet
+mundo: world globe
+globo: balloon globe
+cometa: comet kite
+fiesta: party confetti
+confeti: confetti
+cumpleanos: birthday cake
+pastel: cake
+torta: cake
+tarta: cake
+regalo: gift
+navidad: christmas
+santa: santa claus
+arbol de navidad: christmas tree
+halloween: jack
+calabaza: jack
+fuegos artificiales: fireworks
+fuegos: fireworks fire
+manzana: apple
+pera: pear
+naranja: tangerine orange
+limon: lemon
+platano: banana
+banana: banana
+sandia: watermelon
+uvas: grapes
+uva: grapes
+melon: melon
+fresa: strawberry
+frutilla: strawberry
+cereza: cherries cherry
+durazno: peach
+melocoton: peach
+piña: pineapple
+pina: pineapple
+mango: mango
+coco: coconut
+kiwi: kiwi
+tomate: tomato
+aguacate: avocado
+palta: avocado
+berenjena: eggplant
+papa: potato
+patata: potato
+zanahoria: carrot
+maiz: corn
+elote: corn
+chile: pepper
+pimiento: pepper
+brocoli: broccoli
+ajo: garlic
+cebolla: onion
+pepino: cucumber
+lechuga: leafy
+cacahuate: peanuts
+mani: peanuts
+castana: chestnut
+pan: bread
+baguette: baguette
+croissant: croissant
+queso: cheese
+huevo: egg
+huevos: eggs egg
+tocino: bacon
+carne: meat
+hamburguesa: hamburger
+papas fritas: fries
+pizza: pizza
+hot dog: hot dog
+sandwich: sandwich
+taco: taco
+burrito: burrito
+tamal: tamale
+ensalada: salad
+sopa: soup
+spaghetti: spaghetti
+espagueti: spaghetti
+pasta: spaghetti
+ramen: steaming
+arroz: rice
+sushi: sushi
+curry: curry
+fideos: noodles
+galleta: cookie
+galletas: cookie
+dona: doughnut
+helado: ice cream
+paleta: lollipop
+caramelo: candy
+dulce: candy sweet
+chocolate: chocolate
+palomitas: popcorn
+miel: honey
+leche: milk
+cafe: coffee hot beverage
+te: tea
+taza: cup teacup
+vaso: glass
+cerveza: beer
+cervezas: beers beer
+vino: wine
+champan: champagne bottle popping
+copa: glass cocktail
+coctel: cocktail
+trago: cocktail tumbler
+whisky: tumbler
+botella: bottle
+cuchara: spoon
+tenedor: fork
+cuchillo: knife
+plato: plate
+palillos: chopsticks
+comida: food
+cocina: kitchen cooking
+sal: salt
+hielo: ice
+balon: ball
+pelota: ball
+futbol: soccer football
+baloncesto: basketball
+basquetbol: basketball
+beisbol: baseball
+americano: football
+tenis: tennis
+voleibol: volleyball
+rugby: rugby
+golf: golf
+boliche: bowling
+billar: pool
+ping pong: ping pong
+badminton: badminton
+hockey: hockey
+boxeo: boxing
+karate: martial
+lucha: wrestling
+esgrima: fencing
+arco: bow
+diana: bullseye direct
+dardos: bullseye
+ajedrez: chess
+dado: die
+dados: die
+juego: game video
+videojuego: video game joystick
+control: joystick control
+carta: card letter
+cartas: cards card
+trofeo: trophy
+medalla: medal
+copa: trophy
+premio: trophy medal
+primero: first
+oro: first
+musica: music musical note
+nota: note
+notas: notes
+guitarra: guitar
+piano: piano keyboard
+violin: violin
+trompeta: trumpet
+tambor: drum
+bateria: drum battery
+saxofon: saxophone
+microfono: microphone
+audifonos: headphone
+auriculares: headphone
+radio: radio
+cine: movie cinema
+pelicula: movie film
+camara: camera
+foto: camera picture
+fotografia: camera picture
+television: television
+tele: television
+telefono: telephone phone
+celular: mobile phone
+movil: mobile phone
+llamada: call telephone
+llamar: call telephone
+computadora: computer laptop
+computador: computer laptop
+laptop: laptop
+teclado: keyboard
+raton: mouse
+impresora: printer
+bateria: battery
+enchufe: plug
+bombilla: bulb
+foco: bulb light
+linterna: flashlight
+vela: candle
+libro: book
+libros: books
+cuaderno: notebook
+periodico: newspaper
+carta: envelope letter
+sobre: envelope
+correo: mail email
+email: email
+mensaje: speech message
+bocadillo: speech
+pluma: pen feather
+lapiz: pencil
+boligrafo: pen
+tijeras: scissors
+regla: ruler
+clip: paperclip
+chincheta: pushpin
+candado: locked lock
+llave: key
+martillo: hammer
+herramienta: tool wrench
+herramientas: tools wrench
+tornillo: nut screwdriver
+engranaje: gear
+iman: magnet
+lupa: magnifying
+microscopio: microscope
+telescopio: telescope
+medicina: pill medical
+pastilla: pill
+jeringa: syringe
+termometro: thermometer
+vendaje: bandage
+adn: dna
+bomba: bomb
+pistola: pistol
+espada: sword swords dagger
+escudo: shield
+dinero: money
+billete: banknote dollar
+dolares: dollar
+moneda: coin
+tarjeta: credit card
+banco: bank
+carro: car automobile
+coche: car automobile
+auto: car automobile
+taxi: taxi
+autobus: bus
+camion: truck
+ambulancia: ambulance
+policia: police
+bomberos: fire engine
+moto: motorcycle motor
+motocicleta: motorcycle
+patineta: skateboard
+scooter: scooter
+tren: train
+metro: metro
+tranvia: tram
+avion: airplane
+helicoptero: helicopter
+cohete: rocket
+ovni: saucer
+barco: ship boat
+bote: boat
+velero: sailboat
+lancha: speedboat
+ancla: anchor
+semaforo: traffic
+gasolina: fuel
+combustible: fuel
+casa: house
+casas: houses
+edificio: building
+hospital: hospital
+escuela: school
+fabrica: factory
+iglesia: church
+mezquita: mosque
+sinagoga: synagogue
+templo: temple
+castillo: castle
+estatua: statue
+torre: tower
+puente: bridge
+tienda: store shop
+hotel: hotel
+estadio: stadium
+carpa: tent
+campamento: camping
+carretera: motorway
+mapa: map
+brujula: compass
+reloj: clock watch
+hora: clock
+tiempo: hourglass timer
+cronometro: stopwatch
+temporizador: timer
+alarma: alarm
+calendario: calendar
+luz: light bulb
+fuego: fire
+bandera: flag
+banderas: flags flag
+pais: flag
+cruz: cross
+check: check
+palomita: check
+equis: cross
+mas: plus
+menos: minus
+dividir: divide
+multiplicar: multiply
+igual: equals
+pregunta: question
+interrogacion: question
+exclamacion: exclamation
+advertencia: warning
+peligro: warning
+prohibido: prohibited
+alto: stop
+reciclaje: recycling
+basura: wastebasket litter
+cesto: wastebasket
+bano: bathtub toilet shower
+inodoro: toilet
+ducha: shower
+jabon: soap
+esponja: sponge
+escoba: broom
+cama: bed
+sofa: couch
+silla: chair
+puerta: door
+ventana: window
+espejo: mirror
+cubo: bucket
+cuerda: rope
+cadena: chain
+numero: numbers keycap
+numeros: numbers keycap
+cero: zero
+uno: one
+dos: two
+tres: three
+cuatro: four
+cinco: five
+seis: six
+siete: seven
+ocho: eight
+nueve: nine
+diez: ten
+cien: hundred
+punto: dot
+circulo: circle
+cuadrado: square
+triangulo: triangle
+brillo: sparkles sparkle
+brillante: sparkles bright
+chispa: sparkler
+magia: magic wand sparkles
+varita: wand
+bola de cristal: crystal
+suerte: clover
+chismoso: eyes
+secreto: shushing secret
+silencio: shushing muted
+shh: shushing
+beso: kiss
+risa nerviosa: sweat
+sudor: sweat
+sudando: sweat
+verguenza: flushed
+sonrojado: flushed
+timido: pleading
+suplicando: pleading
+ojos grandes: pleading
+cool: cool sunglasses
+genial: cool star
+estrellas: star-struck stars
+fiesta: partying
+nerd: nerd
+mentiroso: lying
+mentira: lying
+vomitar: vomiting
+babeando: drooling
+enmascarado: mask
+mascara: mask
+tapabocas: mask
+cubrebocas: mask
+vacuna: syringe
+virus: microbe
+bacteria: microbe
+zodiaco: aries taurus gemini cancer leo virgo libra scorpio sagittarius capricorn aquarius pisces
+aries: aries
+tauro: taurus
+geminis: gemini
+cancer: cancer
+leo: leo
+virgo: virgo
+libra: libra
+escorpio: scorpio
+sagitario: sagittarius
+capricornio: capricorn
+acuario: aquarius
+piscis: pisces
+cruzado: crossed
+cruzados: crossed
+dedos cruzados: crossed fingers
+ahora: now
+nuevo: new
+libre: free
+gratis: free
+cool: cool
+sos: sos
+vip: id
+cerrado: closed
+abierto: open
+esta: this
+aqui: here
+alla: there
+espana: spain
+mexico: mexico
+estados unidos: united states
+eeuu: united states
+usa: united states
+reino unido: united kingdom
+inglaterra: england
+escocia: scotland
+gales: wales
+irlanda: ireland
+francia: france
+alemania: germany
+italia: italy
+portugal: portugal
+holanda: netherlands
+paises bajos: netherlands
+belgica: belgium
+suiza: switzerland
+austria: austria
+suecia: sweden
+noruega: norway
+dinamarca: denmark
+finlandia: finland
+islandia: iceland
+polonia: poland
+rusia: russia
+ucrania: ukraine
+grecia: greece
+turquia: turkey turkiye
+china: china
+japon: japan
+corea: korea
+india: india
+indonesia: indonesia
+tailandia: thailand
+vietnam: vietnam
+filipinas: philippines
+australia: australia
+nueva zelanda: new zealand
+canada: canada
+brasil: brazil
+argentina: argentina
+chile: chile
+colombia: colombia
+peru: peru
+venezuela: venezuela
+ecuador: ecuador
+bolivia: bolivia
+paraguay: paraguay
+uruguay: uruguay
+cuba: cuba
+haiti: haiti
+republica dominicana: dominican republic
+puerto rico: puerto rico
+panama: panama
+costa rica: costa rica
+nicaragua: nicaragua
+honduras: honduras
+el salvador: el salvador
+guatemala: guatemala
+belice: belize
+jamaica: jamaica
+egipto: egypt
+marruecos: morocco
+sudafrica: south africa
+nigeria: nigeria
+kenia: kenya
+israel: israel
+arabia saudita: saudi arabia
+iran: iran
+irak: iraq
+pakistan: pakistan
+rumania: romania
+hungria: hungary
+croacia: croatia
+serbia: serbia
+bulgaria: bulgaria
+checa: czechia
+eslovaquia: slovakia
+eslovenia: slovenia
+lituania: lithuania
+letonia: latvia
+estonia: estonia
+bielorrusia: belarus
+andorra: andorra
+mónaco: monaco
+vaticano: vatican
+luxemburgo: luxembourg
+malta: malta
+chipre: cyprus
+catar: qatar
+emiratos: emirates
+singapur: singapore
+malasia: malaysia
+taiwan: taiwan
+mongolia: mongolia
+nepal: nepal
+afganistan: afghanistan
+siria: syria
+libano: lebanon
+jordania: jordan
+kuwait: kuwait
+yemen: yemen
+argelia: algeria
+tunez: tunisia
+libia: libya
+etiopia: ethiopia
+tanzania: tanzania
+uganda: uganda
+ghana: ghana
+senegal: senegal
+angola: angola
+mozambique: mozambique
+zimbabue: zimbabwe
+madagascar: madagascar

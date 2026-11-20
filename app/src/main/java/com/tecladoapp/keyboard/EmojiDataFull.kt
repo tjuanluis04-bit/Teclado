@@ -2003,9 +2003,49 @@ object EmojiDataFull {
 
     val all: List<EmojiEntry> = smileysAll + personasAll + animalesAll + comidaAll + viajesAll + actividadesAll + objetosAll + simbolosAll + banderasAll
 
+    private fun norm(t: String): String =
+        java.text.Normalizer.normalize(t.lowercase(), java.text.Normalizer.Form.NFD)
+            .replace(Regex("\\p{Mn}+"), "").trim()
+
+    private var esMap: Map<String, Set<String>>? = null
+
+    /** Carga el diccionario español→inglés (assets/emoji_es.txt). */
+    fun loadSpanish(context: android.content.Context) {
+        if (esMap != null) return
+        val m = HashMap<String, MutableSet<String>>()
+        try {
+            context.assets.open("emoji_es.txt").bufferedReader(Charsets.UTF_8).useLines { lines ->
+                lines.forEach { line ->
+                    if (line.isBlank() || line.startsWith("#")) return@forEach
+                    val idx = line.indexOf(':')
+                    if (idx <= 0) return@forEach
+                    val key = norm(line.substring(0, idx))
+                    val vals = line.substring(idx + 1).trim().lowercase().split(' ').filter { it.isNotBlank() }
+                    m.getOrPut(key) { HashSet() }.addAll(vals)
+                }
+            }
+        } catch (_: Exception) {}
+        esMap = m
+    }
+
     fun search(query: String): List<EmojiEntry> {
         if (query.isBlank()) return all
-        val q = query.lowercase()
-        return all.filter { entry -> entry.keywords.any { it.contains(q) } || entry.emoji == q }
+        val q = query.lowercase().trim()
+        val qn = norm(q)
+        val map = esMap
+        // palabras inglesas equivalentes a lo escrito en español
+        val eng = HashSet<String>()
+        if (map != null) {
+            map[qn]?.let { eng.addAll(it) }
+            qn.split(' ').filter { it.length >= 2 }.forEach { tok -> map[tok]?.let { eng.addAll(it) } }
+            // prefijo: "ro" -> rojo, rosa...
+            if (eng.isEmpty() && qn.length >= 3) {
+                map.entries.filter { it.key.startsWith(qn) }.forEach { eng.addAll(it.value) }
+            }
+        }
+        val direct = all.filter { entry -> entry.keywords.any { it.contains(q) } || entry.emoji == q }
+        if (eng.isEmpty()) return direct
+        val viaEs = all.filter { e -> e.keywords.any { it in eng } }
+        return (direct + viaEs).distinctBy { it.emoji }
     }
 }

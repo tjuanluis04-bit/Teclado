@@ -4,7 +4,8 @@ data class ClipItem(
     val id: String,
     val text: String,
     val timestamp: Long,
-    var categoryId: String? = null
+    var categoryId: String? = null,
+    val manual: Boolean = false
 )
 
 data class ClipCategory(

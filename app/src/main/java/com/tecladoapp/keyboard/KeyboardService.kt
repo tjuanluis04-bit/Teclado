@@ -31,6 +31,7 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
     private lateinit var contentContainer: FrameLayout
     private lateinit var keyboardView: KeyboardView
     private var styleButton: ImageView? = null
+    private var timerButton: ImageView? = null
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private var inlineHost: InlineInputHost? = null
@@ -40,11 +41,14 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
     private var userFreq: MutableMap<String, Int> = mutableMapOf()
     private var learnCount = 0
     private var hasSelection = false
+    private var selStart = 0
+    private var selEnd = 0
     private var builtThemeId = ""
 
     override fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesStart: Int, candidatesEnd: Int) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
         hasSelection = newSelStart != newSelEnd
+        selStart = newSelStart; selEnd = newSelEnd
     }
 
     // ---- historial para deshacer / rehacer ----
@@ -65,6 +69,7 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         super.onCreate()
         prefs = Prefs(this)
         userFreq = prefs.getWordFreq()
+        PracticeTimer.init(this)
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager?.addPrimaryClipChangedListener(clipListener)
     }
@@ -182,6 +187,12 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         val sb = iconButton(R.drawable.ic_textstyle) { showTextStylePanel() }
         styleButton = sb
         bar.addView(sb)
+        bar.addView(iconButton(R.drawable.ic_connector) { showConnectorsPanel() })
+        val tb = iconButton(R.drawable.ic_timer) { showTimerPanel() }
+        timerButton = tb
+        bar.addView(tb)
+        bar.addView(iconButton(R.drawable.ic_text_clean) { showTextCleanerPanel() })
+        bar.addView(iconButton(R.drawable.ic_grammar) { showGrammarPanel() })
         bar.addView(iconButton(R.drawable.ic_settings) { openSettings() })
 
         return HorizontalScrollView(this).apply {
@@ -240,10 +251,14 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         val t12 = String.format("%d:%02d %s", h12, min, suffix)
         val months = listOf("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre")
         val date = "${now.get(Calendar.DAY_OF_MONTH)}/${months[now.get(Calendar.MONTH)]}/${now.get(Calendar.YEAR)}"
+        val days = listOf("Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
+        val dayName = days[now.get(Calendar.DAY_OF_WEEK) - 1]
         showListPopup(anchor, listOf(
             Triple("Hora 24 h: $t24", null as android.graphics.Typeface?, { commitRecorded(t24) }),
             Triple("Hora 12 h: $t12", null as android.graphics.Typeface?, { commitRecorded(t12) }),
-            Triple("Fecha: $date", null as android.graphics.Typeface?, { commitRecorded(date) })
+            Triple("Fecha: $date", null as android.graphics.Typeface?, { commitRecorded(date) }),
+            Triple("Día: $dayName", null as android.graphics.Typeface?, { commitRecorded(dayName) }),
+            Triple("$dayName, $date", null as android.graphics.Typeface?, { commitRecorded("$dayName, $date") })
         ))
     }
 
@@ -281,6 +296,7 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         (keyboardView.parent as? ViewGroup)?.removeView(keyboardView)
         contentContainer.addView(keyboardView)
         keyboardView.resetToDefault()
+        timerButton?.setColorFilter(if (PracticeTimer.anyRunning) Color.parseColor("#FFC107") else ThemeCatalog.theme(prefs.themeId).accentColor)
         suggestionBar.visibility = if (prefs.wordSuggestionsEnabled) View.VISIBLE else View.GONE
         evaluateAutoCap()
         updateSuggestions()
@@ -293,6 +309,8 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
             override fun onEmojiSelected(emoji: String) { commitRecorded(emoji) }
             override fun onClose() { showKeyboardView() }
             override fun onDeleteLastEmoji() { deleteLastEmojiOrChar() }
+            override fun onEmojiSpace() { commitRecorded(" ") }
+            override fun onEmojiEnter() { commitRecorded("\n") }
         }
         showPanel(panel)
         currentEmojiPanel = panel
@@ -335,10 +353,55 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         showPanel(panel)
     }
 
+    private fun showConnectorsPanel() {
+        val panel = ConnectorsPanelView(this)
+        panel.listener = object : ConnectorsPanelView.Listener {
+            override fun onInsert(text: String) { commitRecorded(text) }
+            override fun onClose() { showKeyboardView() }
+        }
+        showPanel(panel)
+    }
+
+    private fun showTimerPanel() {
+        val panel = TimerPanelView(this)
+        panel.listener = object : TimerPanelView.Listener { override fun onClose() { showKeyboardView() } }
+        showPanel(panel)
+    }
+
+    private fun selectedOrEmpty(): String =
+        if (hasSelection) currentInputConnection?.getSelectedText(0)?.toString().orEmpty() else ""
+
+    private fun showTextCleanerPanel() {
+        val panel = TextCleanerPanelView(this, selectedOrEmpty())
+        panel.listener = object : TextCleanerPanelView.Listener {
+            override fun onInsert(text: String) { commitRecorded(text); showKeyboardView() }
+            override fun onClose() { showKeyboardView() }
+        }
+        showPanel(panel)
+    }
+
+    private fun showGrammarPanel() {
+        val panel = GrammarPanelView(this, selectedOrEmpty())
+        panel.listener = object : GrammarPanelView.Listener {
+            override fun onInsert(text: String) { commitRecorded(text); showKeyboardView() }
+            override fun onClose() { showKeyboardView() }
+        }
+        showPanel(panel)
+    }
+
     private fun showTextStylePanel() {
         val panel = TextStylePanelView(this, activeStyle?.id)
         panel.listener = object : TextStylePanelView.Listener {
             override fun onStyleChosen(style: TextStyle?) {
+                if (style != null && hasSelection) {
+                    val ic = currentInputConnection
+                    val sel = ic?.getSelectedText(0)?.toString().orEmpty()
+                    if (ic != null && sel.isNotEmpty()) {
+                        replaceSelectionKeeping(ic, TextStyles.convert(style, sel))
+                        showKeyboardView()
+                        return
+                    }
+                }
                 activeStyle = style
                 styleButton?.setColorFilter(if (style != null) Color.parseColor("#FFC107") else ThemeCatalog.theme(prefs.themeId).accentColor)
                 showKeyboardView()
@@ -546,13 +609,55 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         val ic = currentInputConnection ?: return
         ic.commitText(" ", 1)
         record(" ", "", "")
-        val before = ic.getTextBeforeCursor(40, 0)?.toString().orEmpty()
-        learnLastWord(before)
-        evaluateAutoCap(before)
+        // el resto (aprender palabra, mayúscula automática) se hace justo después, sin retrasar la tecla
+        uiHandler.post {
+            val before = currentInputConnection?.getTextBeforeCursor(40, 0)?.toString().orEmpty()
+            learnLastWord(before)
+            evaluateAutoCap(before)
+        }
         scheduleRefresh()
     }
 
     override fun onShiftToggled(active: Boolean) {}
+
+    /** Reemplaza la selección por [newText] y la deja seleccionada (para poder seguir ciclando). */
+    private fun replaceSelectionKeeping(ic: InputConnection, newText: String) {
+        val start = minOf(selStart, selEnd)
+        val old = ic.getSelectedText(0)?.toString().orEmpty()
+        ic.commitText(newText, 1)
+        record(newText, old, "")
+        ic.setSelection(start, start + newText.length)
+        selStart = start; selEnd = start + newText.length; hasSelection = true
+    }
+
+    private fun titleCase(t: String): String {
+        val sb = StringBuilder()
+        var newWord = true
+        for (ch in t) {
+            if (ch.isLetter()) { sb.append(if (newWord) ch.uppercaseChar() else ch.lowercaseChar()); newWord = false }
+            else { sb.append(ch); newWord = !(ch == '\'' || ch == '’' || ch.isDigit()) }
+        }
+        return sb.toString()
+    }
+
+    /** Con texto seleccionado, Shift cicla: minúsculas → MAYÚSCULAS → Primera Letra De Cada Palabra. */
+    override fun onShiftWithSelection(): Boolean {
+        if (inlineHost != null || !hasSelection) return false
+        val ic = currentInputConnection ?: return false
+        val sel = ic.getSelectedText(0)?.toString().orEmpty()
+        if (sel.isEmpty()) return false
+        val lower = sel.lowercase()
+        val upper = sel.uppercase()
+        val next = when {
+            sel == lower -> upper
+            sel == upper -> titleCase(sel)
+            else -> lower
+        }
+        // si el siguiente paso no cambia nada (p. ej. solo números), saltar al siguiente
+        val result = if (next == sel) (if (next == upper) titleCase(sel) else lower) else next
+        replaceSelectionKeeping(ic, result)
+        return true
+    }
 
     override fun onSwitchToSymbols(showSymbols: Boolean) {}
 
@@ -651,7 +756,7 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
 
     private fun scheduleRefresh() {
         uiHandler.removeCallbacks(refreshRunnable)
-        uiHandler.postDelayed(refreshRunnable, 110)
+        uiHandler.postDelayed(refreshRunnable, 170)
     }
 
     private fun learnLastWord(text: String? = null) {
@@ -677,10 +782,15 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
         if (inlineHost != null) return
         val ic = currentInputConnection ?: return
         val before = ic.getTextBeforeCursor(30, 0)?.toString() ?: ""
-        val currentWord = before.takeLastWhile { it.isLetter() }
+        val after = if (hasSelection) "" else ic.getTextAfterCursor(30, 0)?.toString().orEmpty().takeWhile { it.isLetter() }
+        val currentWord = before.takeLastWhile { it.isLetter() } + after
         val theme = ThemeCatalog.theme(prefs.themeId)
         val suggestions = when {
             currentWord.isEmpty() -> WordSuggester.suggestionsFor("", userFreq)
+            after.isNotEmpty() ->
+                // el dedo está dentro de una palabra ya escrita: primero sus versiones con acento
+                (WordSuggester.accentVariants(currentWord, userFreq) + WordSuggester.spellingCorrections(currentWord) +
+                    WordSuggester.suggestionsFor(currentWord, userFreq)).distinct()
             prefs.spellCheckEnabled && !WordSuggester.isSpelledCorrectly(currentWord, userFreq) ->
                 WordSuggester.spellingCorrections(currentWord)
             else -> WordSuggester.suggestionsFor(currentWord, userFreq)
@@ -697,10 +807,12 @@ class KeyboardService : InputMethodService(), KeyboardListener, InlineKeyboardPr
     private fun replaceCurrentWord(newWord: String) {
         val ic = currentInputConnection ?: return
         val before = ic.getTextBeforeCursor(30, 0)?.toString() ?: ""
+        val after = ic.getTextAfterCursor(30, 0)?.toString().orEmpty().takeWhile { it.isLetter() }
         val currentWord = before.takeLastWhile { it.isLetter() }
-        if (currentWord.isNotEmpty()) deleteRange(currentWord.length, 0)
+        if (currentWord.isNotEmpty() || after.isNotEmpty()) deleteRange(currentWord.length, after.length)
         val styled = activeStyle?.let { TextStyles.convert(it, newWord) } ?: newWord
-        commitRecorded("$styled ")
+        // dentro de una palabra ya escrita no se añade espacio extra
+        commitRecorded(if (after.isNotEmpty()) styled else "$styled ")
         val key = newWord.lowercase()
         userFreq[key] = (userFreq[key] ?: 0) + 1
         evaluateAutoCap()

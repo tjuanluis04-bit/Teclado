@@ -60,7 +60,7 @@ object WordSuggester {
      * Sugerencias por prefijo (sin distinguir acentos): primero las variantes con acento, luego lo que
      * el usuario más usa (userFreq), luego el diccionario. Con prefijo vacío: las más usadas.
      */
-    fun suggestionsFor(prefix: String, userFreq: Map<String, Int> = emptyMap(), limit: Int = 3): List<String> {
+    fun suggestionsFor(prefix: String, userFreq: Map<String, Int> = emptyMap(), limit: Int = 10): List<String> {
         val lower = prefix.lowercase()
         val pl = plain(lower)
         val variants = accentVariants(prefix, userFreq)
@@ -85,7 +85,7 @@ object WordSuggester {
         return allWords.contains(lower) || (userFreq[lower] ?: 0) >= 2
     }
 
-    fun spellingCorrections(word: String, limit: Int = 3): List<String> {
+    fun spellingCorrections(word: String, limit: Int = 8): List<String> {
         val lower = word.lowercase()
         return allWords
             .map { it to levenshtein(plain(lower), plain(it)) }

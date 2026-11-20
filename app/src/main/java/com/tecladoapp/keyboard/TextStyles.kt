@@ -16,6 +16,20 @@ object TextStyles {
         }
     }
 
+    private val superLower = "ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖqʳˢᵗᵘᵛʷˣʸᶻ"
+    private val superDigits = "⁰¹²³⁴⁵⁶⁷⁸⁹"
+
+    /** Letras (mayús. y minús. iguales) a partir de un punto de código base. */
+    private fun sameCase(base: Int): (Char) -> String? = { c ->
+        when (c) {
+            in 'A'..'Z' -> String(Character.toChars(base + (c - 'A')))
+            in 'a'..'z' -> String(Character.toChars(base + (c - 'a')))
+            else -> null
+        }
+    }
+
+    private fun combining(cp: Int): (Char) -> String? = { c -> if (c.isLetterOrDigit()) c.toString() + String(Character.toChars(cp)) else null }
+
     private val smallCaps = "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ"
 
     val styles: List<TextStyle> = listOf(
@@ -45,7 +59,36 @@ object TextStyles {
             }
         }),
         TextStyle("strike", "Tachado", { c -> if (c.isLetterOrDigit()) c.toString() + String(Character.toChars(0x336)) else null }),
-        TextStyle("underline", "Subrayado", { c -> if (c.isLetterOrDigit()) c.toString() + String(Character.toChars(0x332)) else null })
+        TextStyle("underline", "Subrayado", { c -> if (c.isLetterOrDigit()) c.toString() + String(Character.toChars(0x332)) else null }),
+        TextStyle("sans", "Sans simple", alpha(0x1D5A0, 0x1D5BA, 0x1D7E2)),
+        TextStyle("serifitalic", "Serif cursiva", { c ->
+            if (c == 'h') "ℎ" else alpha(0x1D434, 0x1D44E).invoke(c)
+        }),
+        TextStyle("serifbolditalic", "Serif negrita cursiva", alpha(0x1D468, 0x1D482, 0x1D7CE)),
+        TextStyle("squares", "Cuadrado", sameCase(0x1F130)),
+        TextStyle("negsquares", "Cuadrado negro", sameCase(0x1F170)),
+        TextStyle("negcircles", "Burbuja negra", sameCase(0x1F150)),
+        TextStyle("paren", "Entre paréntesis", { c ->
+            when (c) {
+                in 'A'..'Z' -> String(Character.toChars(0x249C + (c - 'A')))
+                in 'a'..'z' -> String(Character.toChars(0x249C + (c - 'a')))
+                else -> null
+            }
+        }),
+        TextStyle("superscript", "Superíndice", { c ->
+            when (c) {
+                in 'a'..'z' -> superLower[c - 'a'].toString()
+                in 'A'..'Z' -> superLower[c - 'A'].toString()
+                in '0'..'9' -> superDigits[c - '0'].toString()
+                else -> null
+            }
+        }),
+        TextStyle("spaced", "Espaciado", { c -> if (c.isLetterOrDigit()) c.toString() + "\u2009" else null }),
+        TextStyle("dunderline", "Doble subrayado", combining(0x333)),
+        TextStyle("overline", "Línea arriba", combining(0x305)),
+        TextStyle("wavy", "Ondulado", combining(0x330)),
+        TextStyle("wavystrike", "Tachado ondulado", combining(0x334)),
+        TextStyle("dotted", "Con puntos", combining(0x323))
     )
 
     fun byId(id: String?) = styles.find { it.id == id }

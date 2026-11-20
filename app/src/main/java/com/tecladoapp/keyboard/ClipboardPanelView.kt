@@ -83,6 +83,43 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
         render()
     }
 
+    private fun addDivider(rv: RecyclerView) {
+        val d = android.graphics.drawable.GradientDrawable().apply {
+            setColor(Color.parseColor("#3C3C3C")); setSize(1, (resources.displayMetrics.density * 1.5f).toInt().coerceAtLeast(2))
+        }
+        rv.addItemDecoration(androidx.recyclerview.widget.DividerItemDecoration(context, androidx.recyclerview.widget.DividerItemDecoration.VERTICAL).apply { setDrawable(d) })
+    }
+
+    private fun smallIcon(res: Int, tint: String, onClick: () -> Unit): ImageView {
+        val sz = (resources.displayMetrics.density * 40f).toInt()
+        return ImageView(context).apply {
+            setImageResource(res); setColorFilter(Color.parseColor(tint))
+            val pad = (resources.displayMetrics.density * 8f).toInt()
+            setPadding(pad, pad, pad, pad)
+            layoutParams = LinearLayout.LayoutParams(sz, sz)
+            setOnClickListener { onClick() }
+        }
+    }
+
+    private fun confirmDeleteCategory(cat: ClipCategory) {
+        val popup = PopupContainer(context)
+        val box = LinearLayout(context).apply { orientation = VERTICAL; setPadding(8, 8, 8, 8) }
+        box.addView(TextView(context).apply {
+            text = "Los textos de «${cat.name}» no se borran: pasan a Recientes."
+            textSize = 16f; setTextColor(Color.parseColor("#CCCCCC")); setPadding(0, 0, 0, 20)
+        })
+        box.addView(Button(context).apply {
+            text = "Eliminar categoría"; textSize = 17f
+            setOnClickListener {
+                popup.dismiss()
+                // los textos escritos a mano pasan a ser recientes normales
+                prefs.deleteCategory(cat.id)
+                render()
+            }
+        })
+        popup.show(box, "¿Eliminar categoría?", this)
+    }
+
     private fun render() {
         releaseSearchKeyboard()
         tabRecientes.setBackgroundColor(if (currentTab == Tab.RECIENTES) activeTabColor else Color.TRANSPARENT)
@@ -111,6 +148,7 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
             showEditInsteadOfCategorize = false
         )
         recycler.adapter = adapter
+        addDivider(recycler)
         return recycler
     }
 
@@ -146,15 +184,19 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
         popup.show(list, "Categorizar en…", this)
     }
 
-    private fun promptNewCategoryName(onCreated: (String) -> Unit) {
+    private fun promptNewCategoryName(
+        title: String = "Nueva categoría", initial: String = "", buttonLabel: String = "Crear",
+        hint: String = "Nombre de la categoría", onCreated: (String) -> Unit
+    ) {
         releaseSearchKeyboard()
-        val field = InlineTextField(context, "Nombre de la categoría")
+        val field = InlineTextField(context, hint)
+        if (initial.isNotEmpty()) field.setTextValue(initial)
         val popup = PopupContainer(context)
         val container = LinearLayout(context).apply { orientation = VERTICAL; setPadding(24, 24, 24, 24) }
         container.addView(field)
         container.addView(field.keyboardSlot)
         val btn = Button(context).apply {
-            text = "Crear"
+            text = buttonLabel
             textSize = 18f
             setOnClickListener {
                 val name = field.text().trim()
@@ -163,7 +205,7 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
         }
         container.addView(btn, 0)
         field.onEnter = { btn.performClick() }
-        popup.show(container, "Nueva categoría", this, onDismiss = { inlineProvider.detachInlineKeyboard() })
+        popup.show(container, title, this, onDismiss = { inlineProvider.detachInlineKeyboard() })
         field.setActive(true)
         inlineProvider.attachInlineKeyboard(field.keyboardSlot, field, extraHeightPx = 0)
     }
@@ -211,16 +253,25 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
             override fun getItemCount() = shown.size + 1 // +1: fila "Crear categoría"
             override fun getItemViewType(position: Int) = if (position < shown.size) 0 else 1
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-                val tv = TextView(context).apply {
-                    textSize = 19f
-                    setPadding(28, 32, 28, 32)
-                    compoundDrawablePadding = 24
+                val row = LinearLayout(context).apply {
+                    orientation = HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(28, 12, 12, 12)
                     layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 }
-                return object : RecyclerView.ViewHolder(tv) {}
+                val tv = TextView(context).apply {
+                    textSize = 19f
+                    setPadding(0, 20, 0, 20)
+                    compoundDrawablePadding = 24
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                row.addView(tv)
+                return object : RecyclerView.ViewHolder(row) {}
             }
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-                val tv = holder.itemView as TextView
+                val row = holder.itemView as LinearLayout
+                val tv = row.getChildAt(0) as TextView
+                while (row.childCount > 1) row.removeViewAt(1)
                 if (position < shown.size) {
                     val cat = shown[position]
                     tv.text = cat.name
@@ -228,6 +279,10 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
                     tv.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_folder, 0, 0, 0)
                     tv.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(hintColor)
                     tv.setOnClickListener { openCategory = cat; render() }
+                    row.addView(smallIcon(R.drawable.ic_edit, "#6C8CFF") {
+                        promptNewCategoryName("Renombrar categoría", cat.name, "Guardar") { n -> prefs.renameCategory(cat.id, n); render() }
+                    })
+                    row.addView(smallIcon(R.drawable.ic_delete, "#FF6B6B") { confirmDeleteCategory(cat) })
                 } else {
                     tv.text = "Crear categoría"
                     tv.setTextColor(Color.parseColor("#6C8CFF"))
@@ -238,6 +293,7 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
             }
         }
         catRecycler.adapter = catAdapter
+        addDivider(catRecycler)
 
         fun reloadCats() {
             shown.clear()
@@ -293,8 +349,20 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
             setTextColor(textColor)
             setOnClickListener { openCategory = null; render() }
         }
+        back.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        val addText = TextView(context).apply {
+            text = "＋ Añadir texto"; textSize = 16f
+            setTextColor(Color.parseColor("#6C8CFF"))
+            setPadding(24, 12, 24, 12)
+            setOnClickListener {
+                promptNewCategoryName("Añadir texto a «${category.name}»", "", "Guardar", "Escribe el texto…") { t ->
+                    prefs.addClipToCategory(t, category.id); render()
+                }
+            }
+        }
         header.addView(backIcon)
         header.addView(back)
+        header.addView(addText)
         root.addView(header)
 
         val recycler = RecyclerView(context)
@@ -316,6 +384,7 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
             onStartDrag = { vh -> touchHelperRef?.startDrag(vh) }
         )
         recycler.adapter = adapter
+        addDivider(recycler)
 
         // Arrastrar para reordenar dentro de la categoría
         val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
@@ -379,12 +448,18 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
             val row = LinearLayout(context).apply {
-                orientation = VERTICAL
-                setPadding(20, 20, 20, 20)
-            }
-            val text = TextView(context).apply { textSize = 17f; maxLines = 3; setTextColor(textColor) }
-            val actions = LinearLayout(context).apply {
                 orientation = HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(20, 14, 12, 14)
+                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            }
+            val text = TextView(context).apply {
+                textSize = 17f; maxLines = 3; setTextColor(textColor)
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            // acciones a la derecha, compactas, en cuadrícula de 2 x 2
+            val actions = LinearLayout(context).apply {
+                orientation = VERTICAL
                 visibility = ViewGroup.GONE
             }
             row.addView(text)
@@ -396,74 +471,38 @@ class ClipboardPanelView(context: Context, private val prefs: Prefs, private val
             val item = items[position]
             holder.text.text = item.text
             holder.actions.removeAllViews()
+            val d = context.resources.displayMetrics.density
+            fun btn(res: Int, tint: String, onClick: () -> Unit) = smallIcon(res, tint, onClick)
 
-            val secondIcon = LinearLayout(context).apply {
-                orientation = HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, 12, 32, 0)
-                val img = ImageView(context).apply {
-                    setImageResource(if (showEditInsteadOfCategorize) R.drawable.ic_edit else R.drawable.ic_tag)
-                    setColorFilter(Color.parseColor("#6C8CFF"))
-                    layoutParams = LinearLayout.LayoutParams(54, 54).apply { marginEnd = 8 }
-                }
-                val label = TextView(context).apply {
-                    text = if (showEditInsteadOfCategorize) "Editar" else "Categorizar"
-                    setTextColor(Color.parseColor("#6C8CFF"))
-                }
-                addView(img)
-                addView(label)
-                setOnClickListener {
-                    if (showEditInsteadOfCategorize) onEdit?.invoke(item) else onCategorize?.invoke(item)
-                    if (!alwaysShowActions) holder.actions.visibility = ViewGroup.GONE
-                }
-            }
-            val deleteIcon = LinearLayout(context).apply {
-                orientation = HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, 12, 0, 0)
-                val img = ImageView(context).apply {
-                    setImageResource(R.drawable.ic_delete)
-                    setColorFilter(Color.parseColor("#FF6B6B"))
-                    layoutParams = LinearLayout.LayoutParams(54, 54).apply { marginEnd = 8 }
-                }
-                val label = TextView(context).apply {
-                    text = "Borrar"
-                    setTextColor(Color.parseColor("#FF6B6B"))
-                }
-                addView(img)
-                addView(label)
-                setOnClickListener { onDelete(item) }
-            }
-            holder.actions.addView(secondIcon)
+            val first = LinearLayout(context).apply { orientation = HORIZONTAL }
+            val second = LinearLayout(context).apply { orientation = HORIZONTAL }
+
+            // Fila 1: editar / categorizar  +  quitar de la categoría
+            first.addView(btn(if (showEditInsteadOfCategorize) R.drawable.ic_edit else R.drawable.ic_tag, "#6C8CFF") {
+                if (showEditInsteadOfCategorize) onEdit?.invoke(item) else onCategorize?.invoke(item)
+                if (!alwaysShowActions) holder.actions.visibility = ViewGroup.GONE
+            })
             if (onRemoveFromCategory != null) {
-                val remove = TextView(context).apply {
-                    text = "Quitar"
-                    textSize = 16f
-                    setTextColor(Color.parseColor("#FFB74D"))
-                    setPadding(0, 12, 32, 0)
-                    setOnClickListener { onRemoveFromCategory.invoke(item) }
-                }
-                holder.actions.addView(remove)
+                first.addView(btn(R.drawable.ic_close, "#FFB74D") { onRemoveFromCategory.invoke(item) })
             }
-            holder.actions.addView(deleteIcon)
+            // Fila 2: mover  +  borrar
             if (onStartDrag != null) {
-                val handle = TextView(context).apply {
-                    text = "  ≡ Mover"
-                    textSize = 17f
+                second.addView(TextView(context).apply {
+                    text = "≡"; textSize = 26f; gravity = Gravity.CENTER
                     setTextColor(Color.parseColor("#CCCCCC"))
-                    setPadding(32, 12, 0, 0)
+                    layoutParams = LinearLayout.LayoutParams((40 * d).toInt(), (40 * d).toInt())
                     setOnTouchListener { _, ev ->
                         if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN) onStartDrag.invoke(holder)
                         false
                     }
-                }
-                holder.actions.addView(handle)
+                })
             }
+            second.addView(btn(R.drawable.ic_delete, "#FF6B6B") { onDelete(item) })
+            holder.actions.addView(first)
+            holder.actions.addView(second)
             if (alwaysShowActions) holder.actions.visibility = ViewGroup.VISIBLE
 
-            holder.row.setOnClickListener {
-                if (holder.actions.visibility == ViewGroup.VISIBLE) onTap(item) else onTap(item)
-            }
+            holder.row.setOnClickListener { onTap(item) }
             if (!alwaysShowActions) {
                 holder.row.setOnLongClickListener {
                     holder.actions.visibility = if (holder.actions.visibility == ViewGroup.VISIBLE) ViewGroup.GONE else ViewGroup.VISIBLE

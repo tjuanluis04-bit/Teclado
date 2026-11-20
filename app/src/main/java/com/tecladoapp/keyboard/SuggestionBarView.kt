@@ -47,7 +47,13 @@ class SuggestionBarView(context: Context) : LinearLayout(context) {
             }
             addView(chip)
         }
-        words.take(if (clip != null) 2 else 3).forEach { word ->
+        val scroll = android.widget.HorizontalScrollView(context).apply {
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = OVER_SCROLL_NEVER
+            layoutParams = LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+        }
+        val row = LinearLayout(context).apply { orientation = HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        words.take(12).forEach { word ->
             val tv = TextView(context).apply {
                 text = word
                 gravity = Gravity.CENTER
@@ -55,11 +61,14 @@ class SuggestionBarView(context: Context) : LinearLayout(context) {
                 textSize = 18f
                 maxLines = 1
                 typeface = tf
-                setPadding(16, 0, 16, 0)
-                layoutParams = LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+                minWidth = (64 * density).toInt()
+                setPadding((16 * density).toInt(), 0, (16 * density).toInt(), 0)
+                layoutParams = LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT)
                 setOnClickListener { onSuggestionTap?.invoke(word) }
             }
-            addView(tv)
+            row.addView(tv)
         }
+        scroll.addView(row)
+        addView(scroll)
     }
 }

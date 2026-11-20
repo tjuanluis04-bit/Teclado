@@ -42,6 +42,8 @@ interface KeyboardListener {
      * delete=true borra lo abarcado (Borrar+Enter+Espacio); false lo selecciona (Shift+Espacio).
      */
     fun onSpanSwipe(dir: Int, delete: Boolean)
+    /** Shift con texto seleccionado: devuelve true si cambió el texto (minúsculas → MAYÚSCULAS → Capitalizado). */
+    fun onShiftWithSelection(): Boolean
 }
 
 /**
@@ -151,9 +153,10 @@ class KeyboardView(context: Context) : LinearLayout(context) {
 
         val bottomRow = listOf(
             Key(CODE_SYMBOLS, if (showSymbols) "ABC" else "?123", weight = 1.5f, isFunctionKey = true),
-            Key(','.code, ",", weight = 0.9f),
+            if (showSymbols && symbolsSecondPage) Key('<'.code, "<", weight = 0.9f) else Key(','.code, ",", weight = 0.9f),
             Key(CODE_SPACE, "", weight = 3.4f, isFunctionKey = true),
-            if (showSymbols && !symbolsSecondPage) Key('/'.code, "/", weight = 0.9f) else Key('@'.code, "@", weight = 0.9f),
+            if (showSymbols && symbolsSecondPage) Key('>'.code, ">", weight = 0.9f)
+            else if (showSymbols) Key('/'.code, "/", weight = 0.9f) else Key('@'.code, "@", weight = 0.9f),
             Key('.'.code, ".", weight = 0.9f),
             Key(CODE_ENTER, "", weight = 1.6f, isFunctionKey = true, iconRes = R.drawable.ic_enter)
         )
@@ -374,6 +377,7 @@ class KeyboardView(context: Context) : LinearLayout(context) {
 
     /** Un toque alterna mayúsculas; doble toque activa Bloq Mayús. */
     private fun handleShiftTap() {
+        if (listener?.onShiftWithSelection() == true) return
         val now = System.currentTimeMillis()
         autoShift = false
         if (now - lastShiftTapTime < 350) {
@@ -708,6 +712,14 @@ class KeyboardView(context: Context) : LinearLayout(context) {
         var accX = 0f
         var accY = 0f
         var moved = false
+        var repeating = false
+        val repeatRunnable = object : Runnable {
+            override fun run() {
+                repeating = true
+                listener?.onSpace()
+                view.postDelayed(this, 55)
+            }
+        }
         var mode = 0 // 0 normal, 1 borrar (Borrar+Enter+Espacio), 2 seleccionar (Shift+Espacio)
         val charStep = px(16f)
         val wordStep = px(40f)
@@ -728,12 +740,15 @@ class KeyboardView(context: Context) : LinearLayout(context) {
                     }
                     if (mode == 1) { backspaceComboUsed = true; enterComboUsed = true; cancelBackspaceRepeat?.invoke() }
                     if (mode == 2) shiftComboUsed = true
+                    repeating = false
+                    if (mode == 0) view.postDelayed(repeatRunnable, 420)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     accX += event.rawX - lastX
                     accY += event.rawY - lastY
                     lastX = event.rawX; lastY = event.rawY
+                    if (!moved && abs(accX) + abs(accY) > charStep) view.removeCallbacks(repeatRunnable)
                     if (mode == 0) {
                         while (abs(accX) >= charStep) {
                             val dir = if (accX > 0) 1 else -1
@@ -766,10 +781,12 @@ class KeyboardView(context: Context) : LinearLayout(context) {
                 }
                 MotionEvent.ACTION_UP -> {
                     v.isPressed = false
-                    if (!moved && mode == 0) { haptic(v); listener?.onSpace() }
+                    view.removeCallbacks(repeatRunnable)
+                    if (!moved && mode == 0 && !repeating) { haptic(v); listener?.onSpace() }
+                    repeating = false
                     true
                 }
-                MotionEvent.ACTION_CANCEL -> { v.isPressed = false; true }
+                MotionEvent.ACTION_CANCEL -> { v.isPressed = false; view.removeCallbacks(repeatRunnable); repeating = false; true }
                 else -> true
             }
         }

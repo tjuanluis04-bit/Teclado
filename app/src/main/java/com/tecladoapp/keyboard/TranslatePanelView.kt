@@ -83,6 +83,11 @@ class TranslatePanelView(
         addView(result)
 
         val buttons = LinearLayout(context).apply { orientation = HORIZONTAL; setPadding(px(4f), 0, px(4f), 0) }
+        buttons.addView(button("Pegar", "#6A4C93") {
+            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val t = cm.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
+            if (t.isNotBlank()) { field.setTextValue(""); field.appendText(t.trim()); translateNow() }
+        })
         buttons.addView(button("Traducir", "#4C6FFF") { translateNow() })
         buttons.addView(button("Insertar", "#2E7D32") { insert() })
         buttons.layoutParams = LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(48f))

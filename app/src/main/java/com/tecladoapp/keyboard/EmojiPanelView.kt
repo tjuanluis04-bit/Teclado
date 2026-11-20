@@ -15,6 +15,8 @@ class EmojiPanelView(context: Context, private val prefs: Prefs, private val inl
         fun onEmojiSelected(emoji: String)
         fun onClose()
         fun onDeleteLastEmoji()
+        fun onEmojiSpace()
+        fun onEmojiEnter()
     }
 
     var listener: Listener? = null
@@ -24,6 +26,52 @@ class EmojiPanelView(context: Context, private val prefs: Prefs, private val inl
         val glyphCache = HashMap<String, Boolean>()
         /** true si la tipografía del teléfono sabe dibujar ese emoji (evita cuadritos rotos como 🫪). */
         fun supported(e: String): Boolean = glyphCache.getOrPut(e) { glyphPaint.hasGlyph(e) }
+
+        private val toneCache = HashMap<String, String>()
+        private val toneMods = intArrayOf(0, 0x1F3FB, 0x1F3FC, 0x1F3FD, 0x1F3FE, 0x1F3FF)
+
+        /** Aplica el tono de piel (1..5) si el teléfono lo soporta; si no, deja el emoji base. */
+        fun withTone(e: String, tone: Int): String = toneCache.getOrPut("$e#$tone") {
+            val first = e.codePointAt(0)
+            val firstLen = Character.charCount(first)
+            var rest = e.substring(firstLen)
+            if (rest.startsWith("\uFE0F")) rest = rest.substring(1)
+            val cand = String(Character.toChars(first)) + String(Character.toChars(toneMods[tone])) + rest
+            if (cand != e && glyphPaint.hasGlyph(cand)) cand else e
+        }
+
+        private val flagCache = HashMap<String, Long>()
+        private val droppedTerritories = setOf("EA", "BV", "SJ", "UM", "CP", "HM")
+        private fun flagCode(e: String): String? {
+            val cps = e.codePoints().toArray()
+            if (cps.size != 2 || cps.any { it < 0x1F1E6 || it > 0x1F1FF }) return null
+            return String(charArrayOf((cps[0] - 0x1F1E6 + 'A'.code).toChar(), (cps[1] - 0x1F1E6 + 'A'.code).toChar()))
+        }
+        private fun flagHash(e: String): Long = flagCache.getOrPut(e) {
+            val bmp = android.graphics.Bitmap.createBitmap(32, 32, android.graphics.Bitmap.Config.ARGB_8888)
+            val c = android.graphics.Canvas(bmp)
+            val p = android.graphics.Paint().apply { textSize = 26f }
+            c.drawText(e, 0f, 26f, p)
+            val px = IntArray(32 * 32); bmp.getPixels(px, 0, 32, 0, 0, 32, 32)
+            bmp.recycle()
+            var h = 1125899906842597L
+            for (v in px) h = 31 * h + v
+            h
+        }
+        /** Quita banderas repetidas (territorios que se dibujan igual que su país). */
+        fun dedupeFlags(list: List<String>): List<String> {
+            val seen = HashSet<Long>()
+            val res = ArrayList<String>()
+            for (e in list) {
+                val code = flagCode(e)
+                if (code != null) {
+                    if (code in droppedTerritories) continue
+                    if (!seen.add(flagHash(e))) continue
+                }
+                res.add(e)
+            }
+            return res
+        }
     }
 
     private enum class Tab { RECIENTES, FAVORITOS, BUSQUEDA, CATEGORIA }
@@ -46,8 +94,11 @@ class EmojiPanelView(context: Context, private val prefs: Prefs, private val inl
     private val categoryScroll = HorizontalScrollView(context)
     private val categoryButtons = mutableListOf<ImageView>()
     private val keyboardSlot = FrameLayout(context)
+    private val toneRow = LinearLayout(context)
+    private val toneDots = mutableListOf<View>()
 
     init {
+        EmojiDataFull.loadSpanish(context)
         orientation = VERTICAL
         setBackgroundColor(Color.parseColor("#161616"))
 
@@ -112,18 +163,46 @@ class EmojiPanelView(context: Context, private val prefs: Prefs, private val inl
         recycler.layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         recyclerHolder.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
         recyclerHolder.addView(recycler)
-        // Borrador de emojis: fuera del buscador, flotante; solo borra, no activa el teclado
-        val deleteBtn = ImageView(context).apply {
-            setImageResource(R.drawable.ic_backspace)
-            setColorFilter(Color.WHITE)
-            setPadding(px(12f), px(12f), px(12f), px(12f))
-            background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(Color.parseColor("#CC2A2A2A")); cornerRadius = px(14f).toFloat()
+        // Botones flotantes: espacio, salto de línea y borrador (no activan el teclado)
+        fun floatBtn(icon: Int?, label: String?, onClick: () -> Unit, w: Float): View {
+            val bg = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.parseColor("#DD2A2A2A")); cornerRadius = px(14f).toFloat()
             }
-            layoutParams = FrameLayout.LayoutParams(px(56f), px(48f), Gravity.BOTTOM or Gravity.END).apply { setMargins(0, 0, px(10f), px(10f)) }
-            setOnClickListener { listener?.onDeleteLastEmoji() }
+            return if (icon != null) ImageView(context).apply {
+                setImageResource(icon); setColorFilter(Color.WHITE)
+                setPadding(px(12f), px(12f), px(12f), px(12f)); background = bg
+                layoutParams = LinearLayout.LayoutParams(px(w), px(48f)).apply { marginStart = px(6f) }
+                setOnClickListener { onClick() }
+            } else TextView(context).apply {
+                text = label; setTextColor(Color.WHITE); textSize = 14f; gravity = Gravity.CENTER
+                background = bg
+                layoutParams = LinearLayout.LayoutParams(px(w), px(48f)).apply { marginStart = px(6f) }
+                setOnClickListener { onClick() }
+            }
         }
-        recyclerHolder.addView(deleteBtn)
+        val floatRow = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END).apply { setMargins(0, 0, px(10f), px(10f)) }
+        }
+        floatRow.addView(floatBtn(null, "␣", { listener?.onEmojiSpace() }, 72f))
+        floatRow.addView(floatBtn(null, "↵", { listener?.onEmojiEnter() }, 52f))
+        floatRow.addView(floatBtn(R.drawable.ic_backspace, null, { listener?.onDeleteLastEmoji() }, 56f))
+        recyclerHolder.addView(floatRow)
+
+        // Fila de tonos de piel (solo en la categoría Personas)
+        toneRow.orientation = HORIZONTAL
+        toneRow.gravity = Gravity.CENTER
+        toneRow.visibility = View.GONE
+        val toneColors = listOf("#FFCC33", "#F7DCC4", "#E8BE98", "#C69163", "#8E5B3A", "#4A2E1B")
+        toneColors.forEachIndexed { i, hex ->
+            val dot = View(context).apply {
+                background = android.graphics.drawable.GradientDrawable().apply { shape = android.graphics.drawable.GradientDrawable.OVAL; setColor(Color.parseColor(hex)) }
+                layoutParams = LinearLayout.LayoutParams(px(34f), px(34f)).apply { setMargins(px(8f), px(4f), px(8f), px(4f)) }
+                setOnClickListener { prefs.skinTone = i; refreshContent() }
+            }
+            toneDots.add(dot); toneRow.addView(dot)
+        }
+        addView(toneRow, indexOfChild(tabBar) + 1)
         addView(recyclerHolder)
 
         // Fila de categorías con iconos propios (no emojis), scroll horizontal, abajo
@@ -247,13 +326,22 @@ class EmojiPanelView(context: Context, private val prefs: Prefs, private val inl
             btn.setColorFilter(if (active) Color.parseColor("#6C8CFF") else Color.parseColor("#999999"))
         }
 
+        val showTones = currentTab == Tab.CATEGORIA && currentCategoryIndex == 1
+        toneRow.visibility = if (showTones) View.VISIBLE else View.GONE
+        toneDots.forEachIndexed { i, d ->
+            d.alpha = if (i == prefs.skinTone) 1f else 0.45f
+            d.scaleX = if (i == prefs.skinTone) 1.2f else 1f; d.scaleY = d.scaleX
+        }
         val list: List<String> = when (currentTab) {
             Tab.RECIENTES -> prefs.getRecentEmojis()
             Tab.FAVORITOS -> prefs.getFavoriteEmojis()
             Tab.BUSQUEDA -> EmojiDataFull.search(searchQuery.toString()).map { it.emoji }
             Tab.CATEGORIA -> EmojiDataFull.categories[currentCategoryIndex].items.map { it.emoji }
         }
-        adapter.submit(list.filter { supported(it) })
+        var out = list.filter { supported(it) }
+        if (currentTab == Tab.CATEGORIA && currentCategoryIndex == 8) out = dedupeFlags(out)
+        if (showTones && prefs.skinTone > 0) out = out.map { withTone(it, prefs.skinTone) }
+        adapter.submit(out)
     }
 
     private class EmojiAdapter(
